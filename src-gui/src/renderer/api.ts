@@ -56,6 +56,6 @@ export async function fetchBtcPrice(): Promise<number> {
   return fetchCurrencyUsdPrice("bitcoin");
 }
 
-export async function fetchXmrPrice(): Promise<number> {
-  return fetchCurrencyUsdPrice("monero");
+export async function fetchBeldexPrice(): Promise<number> {
+  return fetchCurrencyUsdPrice("beldex");
 }

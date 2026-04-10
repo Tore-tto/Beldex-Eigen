@@ -625,20 +625,15 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.18.0.tgz#5d694d345ce36b6ecf657349e03eb87297e68da4"
   integrity sha512-UOo5FdvOL0+eIVTgS4tIdbW+TtnBLWg1YBCcU2KWM7nuNwRz9bksDX1bekJJCpu25N1DVWaCwnT39dVQxzqS8g==
 
-"@tauri-apps/api@2.0.0-rc.1":
-  version "2.0.0-rc.1"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/api/-/api-2.0.0-rc.1.tgz#ec858f239e34792625e311f687fcaca0581e0904"
-  integrity sha512-qubAWjM9sqofUh7fe+7UAbBY3wlkfCyxm+PNRYpq9mnNng7lvSQq3sYsFUEB12AYvgGARZSb54VMVUvRuVLi7w==
+"@tauri-apps/api@2.2.0":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/api/-/api-2.2.0.tgz#daaff2515b1a4ff1e763cf84a414548b02b566c5"
+  integrity sha512-R8epOeZl1eJEl603aUMIGb4RXlhPjpgxbGVEaqY+0G5JG9vzV/clNlzTeqc+NLYXVqXcn8mb4c5b9pJIUDEyAg==
 
-"@tauri-apps/api@^2.0.0-rc.0":
-  version "2.0.0-rc.3"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/api/-/api-2.0.0-rc.3.tgz#1dd17530de9cafd854f77d3feeca1732a985a81e"
-  integrity sha512-k1erUfnoOFJwL5VNFZz0BQZ2agNstG7CNOjwpdWMl1vOaVuSn4DhJtXB0Deh9lZaaDlfrykKOyZs9c3XXpMi5Q==
-
-"@tauri-apps/api@^2.0.0-rc.4":
-  version "2.0.0-rc.4"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/api/-/api-2.0.0-rc.4.tgz#2b4c3493d86382981787c52006c6c9e5bf16bc08"
-  integrity sha512-UNiIhhKG08j4ooss2oEEVexffmWkgkYlC2M3GcX3VPtNsqFgVNL8Mcw/4Y7rO9M9S+ffAMnLOF5ypzyuyb8tyg==
+"@tauri-apps/api@^2.0.0":
+  version "2.10.1"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/api/-/api-2.10.1.tgz#57c1bae6114ec33d977eb2b50dfefc25fa84fc93"
+  integrity sha512-hKL/jWf293UDSUN09rR69hrToyIXBb8CjGaWC7gfinvnQrBVvnLr08FeFi38gxtugAVyVcTa5/FD/Xnkb1siBw==
 
 "@tauri-apps/cli-darwin-arm64@2.0.0-beta.21":
   version "2.0.0-beta.21"
@@ -706,19 +701,19 @@
     "@tauri-apps/cli-win32-ia32-msvc" "2.0.0-beta.21"
     "@tauri-apps/cli-win32-x64-msvc" "2.0.0-beta.21"
 
-"@tauri-apps/plugin-clipboard-manager@^2.0.0-rc.0":
-  version "2.0.0-rc.0"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/plugin-clipboard-manager/-/plugin-clipboard-manager-2.0.0-rc.0.tgz#8371fa2a2092c67d0cfd9322698c14115735459e"
-  integrity sha512-2fS3wbRQEtorkk3Np2msJUeKCXRqLQ9sSo2FzlFdUPYNzThsu43uWCF55McGLAfltNOvXQIcQLUBf05jbBL/5w==
+"@tauri-apps/plugin-clipboard-manager@2.2.0":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/plugin-clipboard-manager/-/plugin-clipboard-manager-2.2.0.tgz#3d8f60457da3054454d93dd3fb5a3ca10eef0e5b"
+  integrity sha512-sIBrW/HioKq2vqomwwcU/Y8ygAv3DlS32yKPBX5XijCc0IyQKiDxYpGqmvE9DC5Y0lNJ/G53dfS961B31wjJ1g==
   dependencies:
-    "@tauri-apps/api" "^2.0.0-rc.0"
+    "@tauri-apps/api" "^2.0.0"
 
-"@tauri-apps/plugin-shell@^2.0.0-rc.0":
-  version "2.0.0-rc.1"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/plugin-shell/-/plugin-shell-2.0.0-rc.1.tgz#9facf3bbcedfa2de676cb4cfc703687377aa12a3"
-  integrity sha512-JtNROc0rqEwN/g93ig5pK4cl1vUo2yn+osCpY9de64cy/d9hRzof7AuYOgvt/Xcd5VPQmlgo2AGvUh5sQRSR1A==
+"@tauri-apps/plugin-shell@2.2.0":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/plugin-shell/-/plugin-shell-2.2.0.tgz#3a52375457ae8358666ff80a968cc93d92573abf"
+  integrity sha512-iC3Ic1hLmasoboG7BO+7p+AriSoqAwKrIk+Hpk+S/bjTQdXqbl2GbdclghI4gM32X0bls7xHzIFqhRdrlvJeaA==
   dependencies:
-    "@tauri-apps/api" "^2.0.0-rc.4"
+    "@tauri-apps/api" "^2.0.0"
 
 "@types/babel__core@^7.20.5":
   version "7.20.5"

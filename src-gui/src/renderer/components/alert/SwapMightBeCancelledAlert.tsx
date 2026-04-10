@@ -41,7 +41,7 @@ export default function SwapMightBeCancelledAlert({
   return (
     <Alert severity="warning" className={classes.outer} variant="filled">
       <AlertTitle>Be careful!</AlertTitle>
-      The swap provider has taken a long time to lock their Monero. This might
+      The swap provider has taken a long time to lock their Beldex. This might
       mean that:
       <ul className={classes.list}>
         <li>

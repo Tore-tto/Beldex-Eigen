@@ -14,14 +14,14 @@ export enum BobStateName {
   Started = "quote has been requested",
   SwapSetupCompleted = "execution setup done",
   BtcLocked = "btc is locked",
-  XmrLockProofReceived = "XMR lock transaction transfer proof received",
-  XmrLocked = "xmr is locked",
+  BeldexLockProofReceived = "BDX lock transaction transfer proof received",
+  BeldexLocked = "bdx is locked",
   EncSigSent = "encrypted signature is sent",
   BtcRedeemed = "btc is redeemed",
   CancelTimelockExpired = "cancel timelock is expired",
   BtcCancelled = "btc is cancelled",
   BtcRefunded = "btc is refunded",
-  XmrRedeemed = "xmr is redeemed",
+  BeldexRedeemed = "bdx is redeemed",
   BtcPunished = "btc is punished",
   SafelyAborted = "safely aborted",
 }
@@ -42,7 +42,7 @@ export type BobStateNameRunningSwap = Exclude<
   | BobStateName.BtcRefunded
   | BobStateName.BtcPunished
   | BobStateName.SafelyAborted
-  | BobStateName.XmrRedeemed
+  | BobStateName.BeldexRedeemed
 >;
 
 export type GetSwapInfoResponseExtRunningSwap = GetSwapInfoResponseExt & {
@@ -58,12 +58,12 @@ export function isBobStateNameRunningSwap(
     BobStateName.BtcRefunded,
     BobStateName.BtcPunished,
     BobStateName.SafelyAborted,
-    BobStateName.XmrRedeemed,
+    BobStateName.BeldexRedeemed,
   ].includes(state);
 }
 
 export type BobStateNameCompletedSwap =
-  | BobStateName.XmrRedeemed
+  | BobStateName.BeldexRedeemed
   | BobStateName.BtcRefunded
   | BobStateName.BtcPunished
   | BobStateName.SafelyAborted;
@@ -72,7 +72,7 @@ export function isBobStateNameCompletedSwap(
   state: BobStateName,
 ): state is BobStateNameCompletedSwap {
   return [
-    BobStateName.XmrRedeemed,
+    BobStateName.BeldexRedeemed,
     BobStateName.BtcRefunded,
     BobStateName.BtcPunished,
     BobStateName.SafelyAborted,
@@ -81,8 +81,8 @@ export function isBobStateNameCompletedSwap(
 
 export type BobStateNamePossiblyCancellableSwap =
   | BobStateName.BtcLocked
-  | BobStateName.XmrLockProofReceived
-  | BobStateName.XmrLocked
+  | BobStateName.BeldexLockProofReceived
+  | BobStateName.BeldexLocked
   | BobStateName.EncSigSent
   | BobStateName.CancelTimelockExpired;
 
@@ -96,15 +96,15 @@ The following conditions must be met:
  - The bitcoin must not be refunded
  - The bitcoin must not be punished
 
-See: https://github.com/comit-network/xmr-btc-swap/blob/7023e75bb51ab26dff4c8fcccdc855d781ca4b15/swap/src/cli/cancel.rs#L16-L35
+See: https://github.com/comit-network/bdx-btc-swap/blob/7023e75bb51ab26dff4c8fcccdc855d781ca4b15/swap/src/cli/cancel.rs#L16-L35
  */
 export function isBobStateNamePossiblyCancellableSwap(
   state: BobStateName,
 ): state is BobStateNamePossiblyCancellableSwap {
   return [
     BobStateName.BtcLocked,
-    BobStateName.XmrLockProofReceived,
-    BobStateName.XmrLocked,
+    BobStateName.BeldexLockProofReceived,
+    BobStateName.BeldexLocked,
     BobStateName.EncSigSent,
     BobStateName.CancelTimelockExpired,
   ].includes(state);
@@ -112,8 +112,8 @@ export function isBobStateNamePossiblyCancellableSwap(
 
 export type BobStateNamePossiblyRefundableSwap =
   | BobStateName.BtcLocked
-  | BobStateName.XmrLockProofReceived
-  | BobStateName.XmrLocked
+  | BobStateName.BeldexLockProofReceived
+  | BobStateName.BeldexLocked
   | BobStateName.EncSigSent
   | BobStateName.CancelTimelockExpired
   | BobStateName.BtcCancelled;
@@ -127,15 +127,15 @@ The following conditions must be met:
  - The bitcoin must not be refunded
  - The bitcoin must not be punished
 
-See: https://github.com/comit-network/xmr-btc-swap/blob/7023e75bb51ab26dff4c8fcccdc855d781ca4b15/swap/src/cli/refund.rs#L16-L34
+See: https://github.com/comit-network/bdx-btc-swap/blob/7023e75bb51ab26dff4c8fcccdc855d781ca4b15/swap/src/cli/refund.rs#L16-L34
  */
 export function isBobStateNamePossiblyRefundableSwap(
   state: BobStateName,
 ): state is BobStateNamePossiblyRefundableSwap {
   return [
     BobStateName.BtcLocked,
-    BobStateName.XmrLockProofReceived,
-    BobStateName.XmrLocked,
+    BobStateName.BeldexLockProofReceived,
+    BobStateName.BeldexLocked,
     BobStateName.EncSigSent,
     BobStateName.CancelTimelockExpired,
     BobStateName.BtcCancelled,

@@ -13,23 +13,23 @@ pub async fn cancel(
 ) -> Result<(Txid, AliceState)> {
     let state = db.get_state(swap_id).await?.try_into()?;
 
-    let (monero_wallet_restore_blockheight, transfer_proof, state3) = match state {
+    let (beldex_wallet_restore_blockheight, transfer_proof, state3) = match state {
 
-        // In case no XMR has been locked, move to Safely Aborted
+        // In case no BDX has been locked, move to Safely Aborted
         AliceState::Started { .. }
         | AliceState::BtcLockTransactionSeen { .. }
-        | AliceState::BtcLocked { .. } => bail!("Cannot cancel swap {} because it is in state {} where no XMR was locked.", swap_id, state),
+        | AliceState::BtcLocked { .. } => bail!("Cannot cancel swap {} because it is in state {} where no BDX was locked.", swap_id, state),
 
-        AliceState::XmrLockTransactionSent { monero_wallet_restore_blockheight, transfer_proof, state3,  }
-        | AliceState::XmrLocked { monero_wallet_restore_blockheight, transfer_proof, state3 }
-        | AliceState::XmrLockTransferProofSent { monero_wallet_restore_blockheight, transfer_proof, state3 }
+        AliceState::BeldexLockTransactionSent { beldex_wallet_restore_blockheight, transfer_proof, state3,  }
+        | AliceState::BeldexLocked { beldex_wallet_restore_blockheight, transfer_proof, state3 }
+        | AliceState::BeldexLockTransferProofSent { beldex_wallet_restore_blockheight, transfer_proof, state3 }
         // in cancel mode we do not care about the fact that we could redeem, but always wait for cancellation (leading either refund or punish)
-        | AliceState::EncSigLearned { monero_wallet_restore_blockheight, transfer_proof, state3, .. }
-        | AliceState::CancelTimelockExpired { monero_wallet_restore_blockheight, transfer_proof, state3}
-        | AliceState::BtcCancelled { monero_wallet_restore_blockheight, transfer_proof, state3 }
-        | AliceState::BtcRefunded { monero_wallet_restore_blockheight, transfer_proof,  state3 ,.. }
-        | AliceState::BtcPunishable { monero_wallet_restore_blockheight, transfer_proof, state3 }  => {
-            (monero_wallet_restore_blockheight, transfer_proof, state3)
+        | AliceState::EncSigLearned { beldex_wallet_restore_blockheight, transfer_proof, state3, .. }
+        | AliceState::CancelTimelockExpired { beldex_wallet_restore_blockheight, transfer_proof, state3}
+        | AliceState::BtcCancelled { beldex_wallet_restore_blockheight, transfer_proof, state3 }
+        | AliceState::BtcRefunded { beldex_wallet_restore_blockheight, transfer_proof,  state3 ,.. }
+        | AliceState::BtcPunishable { beldex_wallet_restore_blockheight, transfer_proof, state3 }  => {
+            (beldex_wallet_restore_blockheight, transfer_proof, state3)
         }
 
         // The redeem transaction was already published, it is not safe to cancel anymore
@@ -37,7 +37,7 @@ pub async fn cancel(
 
         // Alice already in final state
         | AliceState::BtcRedeemed
-        | AliceState::XmrRefunded
+        | AliceState::BeldexRefunded
         | AliceState::BtcPunished { .. }
         | AliceState::SafelyAborted => bail!("Swap is in state {} which is not cancelable", state),
     };
@@ -55,7 +55,7 @@ pub async fn cancel(
     };
 
     let state = AliceState::BtcCancelled {
-        monero_wallet_restore_blockheight,
+        beldex_wallet_restore_blockheight,
         transfer_proof,
         state3,
     };

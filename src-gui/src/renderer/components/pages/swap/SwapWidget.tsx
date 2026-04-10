@@ -88,20 +88,20 @@ function HasProviderSwapWidget({
   const [btcFieldValue, setBtcFieldValue] = useState<number | string>(
     satsToBtc(selectedProvider.minSwapAmount),
   );
-  const [xmrFieldValue, setXmrFieldValue] = useState(1);
+  const [bdxFieldValue, setBeldexFieldValue] = useState(1);
 
   function onBtcAmountChange(event: ChangeEvent<HTMLInputElement>) {
     setBtcFieldValue(event.target.value);
   }
 
-  function updateXmrValue() {
+  function updateBeldexValue() {
     const parsedBtcAmount = Number(btcFieldValue);
     if (Number.isNaN(parsedBtcAmount)) {
-      setXmrFieldValue(0);
+      setBeldexFieldValue(0);
     } else {
-      const convertedXmrAmount =
+      const convertedBeldexAmount =
         parsedBtcAmount / satsToBtc(selectedProvider.price);
-      setXmrFieldValue(convertedXmrAmount);
+      setBeldexFieldValue(convertedBeldexAmount);
     }
   }
 
@@ -127,7 +127,7 @@ function HasProviderSwapWidget({
     setShowDialog(true);
   }
 
-  useEffect(updateXmrValue, [btcFieldValue, selectedProvider]);
+  useEffect(updateBeldexValue, [btcFieldValue, selectedProvider]);
 
   return (
     // 'elevation' prop can't be passed down (type def issue)
@@ -155,9 +155,9 @@ function HasProviderSwapWidget({
         label="Receive"
         variant="outlined"
         size="medium"
-        value={xmrFieldValue.toFixed(6)}
+        value={bdxFieldValue.toFixed(6)}
         InputProps={{
-          endAdornment: <InputAdornment position="end">XMR</InputAdornment>,
+          endAdornment: <InputAdornment position="end">BDX</InputAdornment>,
         }}
       />
       <ProviderSelect />

@@ -3,13 +3,13 @@ use crate::bitcoin::{
     TxPunish, TxRedeem, TxRefund, Txid,
 };
 use crate::env::Config;
-use crate::monero::wallet::{TransferRequest, WatchRequest};
-use crate::monero::TransferProof;
-use crate::monero_ext::ScalarExt;
+use crate::beldex::wallet::{TransferRequest, WatchRequest};
+use crate::beldex::TransferProof;
+use crate::beldex_ext::ScalarExt;
 use crate::protocol::{Message0, Message1, Message2, Message3, Message4, CROSS_CURVE_PROOF_SYSTEM};
-use crate::{bitcoin, monero};
+use crate::{bitcoin, beldex};
 use anyhow::{anyhow, bail, Context, Result};
-use monero_rpc::wallet::BlockHeight;
+use beldex_rpc::wallet::BlockHeight;
 use rand::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
 use sigma_fun::ext::dl_secp256k1_ed25519_eq::CrossCurveDLEQProof;
@@ -27,23 +27,23 @@ pub enum AliceState {
     BtcLocked {
         state3: Box<State3>,
     },
-    XmrLockTransactionSent {
-        monero_wallet_restore_blockheight: BlockHeight,
+    BeldexLockTransactionSent {
+        beldex_wallet_restore_blockheight: BlockHeight,
         transfer_proof: TransferProof,
         state3: Box<State3>,
     },
-    XmrLocked {
-        monero_wallet_restore_blockheight: BlockHeight,
+    BeldexLocked {
+        beldex_wallet_restore_blockheight: BlockHeight,
         transfer_proof: TransferProof,
         state3: Box<State3>,
     },
-    XmrLockTransferProofSent {
-        monero_wallet_restore_blockheight: BlockHeight,
+    BeldexLockTransferProofSent {
+        beldex_wallet_restore_blockheight: BlockHeight,
         transfer_proof: TransferProof,
         state3: Box<State3>,
     },
     EncSigLearned {
-        monero_wallet_restore_blockheight: BlockHeight,
+        beldex_wallet_restore_blockheight: BlockHeight,
         transfer_proof: TransferProof,
         encrypted_signature: Box<bitcoin::EncryptedSignature>,
         state3: Box<State3>,
@@ -53,24 +53,24 @@ pub enum AliceState {
     },
     BtcRedeemed,
     BtcCancelled {
-        monero_wallet_restore_blockheight: BlockHeight,
+        beldex_wallet_restore_blockheight: BlockHeight,
         transfer_proof: TransferProof,
         state3: Box<State3>,
     },
     BtcRefunded {
-        monero_wallet_restore_blockheight: BlockHeight,
+        beldex_wallet_restore_blockheight: BlockHeight,
         transfer_proof: TransferProof,
-        spend_key: monero::PrivateKey,
+        spend_key: beldex::PrivateKey,
         state3: Box<State3>,
     },
     BtcPunishable {
-        monero_wallet_restore_blockheight: BlockHeight,
+        beldex_wallet_restore_blockheight: BlockHeight,
         transfer_proof: TransferProof,
         state3: Box<State3>,
     },
-    XmrRefunded,
+    BeldexRefunded,
     CancelTimelockExpired {
-        monero_wallet_restore_blockheight: BlockHeight,
+        beldex_wallet_restore_blockheight: BlockHeight,
         transfer_proof: TransferProof,
         state3: Box<State3>,
     },
@@ -88,10 +88,10 @@ impl fmt::Display for AliceState {
                 write!(f, "bitcoin lock transaction in mempool")
             }
             AliceState::BtcLocked { .. } => write!(f, "btc is locked"),
-            AliceState::XmrLockTransactionSent { .. } => write!(f, "xmr lock transaction sent"),
-            AliceState::XmrLocked { .. } => write!(f, "xmr is locked"),
-            AliceState::XmrLockTransferProofSent { .. } => {
-                write!(f, "xmr lock transfer proof sent")
+            AliceState::BeldexLockTransactionSent { .. } => write!(f, "bdx lock transaction sent"),
+            AliceState::BeldexLocked { .. } => write!(f, "bdx is locked"),
+            AliceState::BeldexLockTransferProofSent { .. } => {
+                write!(f, "bdx lock transfer proof sent")
             }
             AliceState::EncSigLearned { .. } => write!(f, "encrypted signature is learned"),
             AliceState::BtcRedeemTransactionPublished { .. } => {
@@ -103,7 +103,7 @@ impl fmt::Display for AliceState {
             AliceState::BtcPunished { .. } => write!(f, "btc is punished"),
             AliceState::SafelyAborted => write!(f, "safely aborted"),
             AliceState::BtcPunishable { .. } => write!(f, "btc is punishable"),
-            AliceState::XmrRefunded => write!(f, "xmr is refunded"),
+            AliceState::BeldexRefunded => write!(f, "bdx is refunded"),
             AliceState::CancelTimelockExpired { .. } => write!(f, "cancel timelock is expired"),
         }
     }
@@ -112,13 +112,13 @@ impl fmt::Display for AliceState {
 #[derive(Clone, Debug, PartialEq)]
 pub struct State0 {
     a: bitcoin::SecretKey,
-    s_a: monero::Scalar,
-    v_a: monero::PrivateViewKey,
-    S_a_monero: monero::PublicKey,
+    s_a: beldex::Scalar,
+    v_a: beldex::PrivateViewKey,
+    S_a_beldex: beldex::PublicKey,
     S_a_bitcoin: bitcoin::PublicKey,
     dleq_proof_s_a: CrossCurveDLEQProof,
     btc: bitcoin::Amount,
-    xmr: monero::Amount,
+    bdx: beldex::Amount,
     cancel_timelock: CancelTimelock,
     punish_timelock: PunishTimelock,
     redeem_address: bitcoin::Address,
@@ -131,7 +131,7 @@ impl State0 {
     #[allow(clippy::too_many_arguments)]
     pub fn new<R>(
         btc: bitcoin::Amount,
-        xmr: monero::Amount,
+        bdx: beldex::Amount,
         env_config: Config,
         redeem_address: bitcoin::Address,
         punish_address: bitcoin::Address,
@@ -143,24 +143,24 @@ impl State0 {
         R: RngCore + CryptoRng,
     {
         let a = bitcoin::SecretKey::new_random(rng);
-        let v_a = monero::PrivateViewKey::new_random(rng);
+        let v_a = beldex::PrivateViewKey::new_random(rng);
 
-        let s_a = monero::Scalar::random(rng);
-        let (dleq_proof_s_a, (S_a_bitcoin, S_a_monero)) = CROSS_CURVE_PROOF_SYSTEM.prove(&s_a, rng);
+        let s_a = beldex::Scalar::random(rng);
+        let (dleq_proof_s_a, (S_a_bitcoin, S_a_beldex)) = CROSS_CURVE_PROOF_SYSTEM.prove(&s_a, rng);
 
         Self {
             a,
             s_a,
             v_a,
             S_a_bitcoin: S_a_bitcoin.into(),
-            S_a_monero: monero::PublicKey {
-                point: S_a_monero.compress(),
+            S_a_beldex: beldex::PublicKey {
+                point: S_a_beldex.compress(),
             },
             dleq_proof_s_a,
             redeem_address,
             punish_address,
             btc,
-            xmr,
+            bdx,
             cancel_timelock: env_config.bitcoin_cancel_timelock,
             punish_timelock: env_config.bitcoin_punish_timelock,
             tx_redeem_fee,
@@ -173,10 +173,10 @@ impl State0 {
             &msg.dleq_proof_s_b,
             (
                 msg.S_b_bitcoin.into(),
-                msg.S_b_monero
+                msg.S_b_beldex
                     .point
                     .decompress()
-                    .ok_or_else(|| anyhow!("S_b is not a monero curve point"))?,
+                    .ok_or_else(|| anyhow!("S_b is not a beldex curve point"))?,
             ),
         );
 
@@ -192,15 +192,15 @@ impl State0 {
                 a: self.a,
                 B: msg.B,
                 s_a: self.s_a,
-                S_a_monero: self.S_a_monero,
+                S_a_beldex: self.S_a_beldex,
                 S_a_bitcoin: self.S_a_bitcoin,
-                S_b_monero: msg.S_b_monero,
+                S_b_beldex: msg.S_b_beldex,
                 S_b_bitcoin: msg.S_b_bitcoin,
                 v,
                 v_a: self.v_a,
                 dleq_proof_s_a: self.dleq_proof_s_a,
                 btc: self.btc,
-                xmr: self.xmr,
+                bdx: self.bdx,
                 cancel_timelock: self.cancel_timelock,
                 punish_timelock: self.punish_timelock,
                 refund_address: msg.refund_address,
@@ -219,16 +219,16 @@ impl State0 {
 pub struct State1 {
     a: bitcoin::SecretKey,
     B: bitcoin::PublicKey,
-    s_a: monero::Scalar,
-    S_a_monero: monero::PublicKey,
+    s_a: beldex::Scalar,
+    S_a_beldex: beldex::PublicKey,
     S_a_bitcoin: bitcoin::PublicKey,
-    S_b_monero: monero::PublicKey,
+    S_b_beldex: beldex::PublicKey,
     S_b_bitcoin: bitcoin::PublicKey,
-    v: monero::PrivateViewKey,
-    v_a: monero::PrivateViewKey,
+    v: beldex::PrivateViewKey,
+    v_a: beldex::PrivateViewKey,
     dleq_proof_s_a: CrossCurveDLEQProof,
     btc: bitcoin::Amount,
-    xmr: monero::Amount,
+    bdx: beldex::Amount,
     cancel_timelock: CancelTimelock,
     punish_timelock: PunishTimelock,
     refund_address: bitcoin::Address,
@@ -244,7 +244,7 @@ impl State1 {
     pub fn next_message(&self) -> Message1 {
         Message1 {
             A: self.a.public(),
-            S_a_monero: self.S_a_monero,
+            S_a_beldex: self.S_a_beldex,
             S_a_bitcoin: self.S_a_bitcoin,
             dleq_proof_s_a: self.dleq_proof_s_a.clone(),
             v_a: self.v_a,
@@ -263,11 +263,11 @@ impl State1 {
             a: self.a,
             B: self.B,
             s_a: self.s_a,
-            S_b_monero: self.S_b_monero,
+            S_b_beldex: self.S_b_beldex,
             S_b_bitcoin: self.S_b_bitcoin,
             v: self.v,
             btc: self.btc,
-            xmr: self.xmr,
+            bdx: self.bdx,
             cancel_timelock: self.cancel_timelock,
             punish_timelock: self.punish_timelock,
             refund_address: self.refund_address,
@@ -286,12 +286,12 @@ impl State1 {
 pub struct State2 {
     a: bitcoin::SecretKey,
     B: bitcoin::PublicKey,
-    s_a: monero::Scalar,
-    S_b_monero: monero::PublicKey,
+    s_a: beldex::Scalar,
+    S_b_beldex: beldex::PublicKey,
     S_b_bitcoin: bitcoin::PublicKey,
-    v: monero::PrivateViewKey,
+    v: beldex::PrivateViewKey,
     btc: bitcoin::Amount,
-    xmr: monero::Amount,
+    bdx: beldex::Amount,
     cancel_timelock: CancelTimelock,
     punish_timelock: PunishTimelock,
     refund_address: bitcoin::Address,
@@ -317,7 +317,7 @@ impl State2 {
 
         let tx_refund =
             bitcoin::TxRefund::new(&tx_cancel, &self.refund_address, self.tx_refund_fee);
-        // Alice encsigns the refund transaction(bitcoin) digest with Bob's monero
+        // Alice encsigns the refund transaction(bitcoin) digest with Bob's beldex
         // pubkey(S_b). The refund transaction spends the output of
         // tx_lock_bitcoin to Bob's refund address.
         // recover(encsign(a, S_b, d), sign(a, d), S_b) = s_b where d is a digest, (a,
@@ -354,11 +354,11 @@ impl State2 {
             a: self.a,
             B: self.B,
             s_a: self.s_a,
-            S_b_monero: self.S_b_monero,
+            S_b_beldex: self.S_b_beldex,
             S_b_bitcoin: self.S_b_bitcoin,
             v: self.v,
             btc: self.btc,
-            xmr: self.xmr,
+            bdx: self.bdx,
             cancel_timelock: self.cancel_timelock,
             punish_timelock: self.punish_timelock,
             refund_address: self.refund_address,
@@ -379,13 +379,13 @@ impl State2 {
 pub struct State3 {
     a: bitcoin::SecretKey,
     B: bitcoin::PublicKey,
-    pub s_a: monero::Scalar,
-    S_b_monero: monero::PublicKey,
+    pub s_a: beldex::Scalar,
+    S_b_beldex: beldex::PublicKey,
     S_b_bitcoin: bitcoin::PublicKey,
-    pub v: monero::PrivateViewKey,
+    pub v: beldex::PrivateViewKey,
     #[serde(with = "::bitcoin::util::amount::serde::as_sat")]
     btc: bitcoin::Amount,
-    xmr: monero::Amount,
+    bdx: beldex::Amount,
     pub cancel_timelock: CancelTimelock,
     pub punish_timelock: PunishTimelock,
     refund_address: bitcoin::Address,
@@ -422,34 +422,34 @@ impl State3 {
         ))
     }
 
-    pub fn lock_xmr_transfer_request(&self) -> TransferRequest {
-        let S_a = monero::PublicKey::from_private_key(&monero::PrivateKey { scalar: self.s_a });
+    pub fn lock_bdx_transfer_request(&self) -> TransferRequest {
+        let S_a = beldex::PublicKey::from_private_key(&beldex::PrivateKey { scalar: self.s_a });
 
-        let public_spend_key = S_a + self.S_b_monero;
+        let public_spend_key = S_a + self.S_b_beldex;
         let public_view_key = self.v.public();
 
         TransferRequest {
             public_spend_key,
             public_view_key,
-            amount: self.xmr,
+            amount: self.bdx,
         }
     }
 
-    pub fn lock_xmr_watch_request(
+    pub fn lock_bdx_watch_request(
         &self,
         transfer_proof: TransferProof,
         conf_target: u64,
     ) -> WatchRequest {
-        let S_a = monero::PublicKey::from_private_key(&monero::PrivateKey { scalar: self.s_a });
+        let S_a = beldex::PublicKey::from_private_key(&beldex::PrivateKey { scalar: self.s_a });
 
-        let public_spend_key = S_a + self.S_b_monero;
+        let public_spend_key = S_a + self.S_b_beldex;
         let public_view_key = self.v.public();
         WatchRequest {
             public_spend_key,
             public_view_key,
             transfer_proof,
             conf_target,
-            expected: self.xmr,
+            expected: self.bdx,
         }
     }
 
@@ -472,11 +472,11 @@ impl State3 {
         TxRedeem::new(&self.tx_lock, &self.redeem_address, self.tx_redeem_fee)
     }
 
-    pub fn extract_monero_private_key(
+    pub fn extract_beldex_private_key(
         &self,
         published_refund_tx: bitcoin::Transaction,
-    ) -> Result<monero::PrivateKey> {
-        self.tx_refund().extract_monero_private_key(
+    ) -> Result<beldex::PrivateKey> {
+        self.tx_refund().extract_beldex_private_key(
             published_refund_tx,
             self.s_a,
             self.a.clone(),
@@ -505,28 +505,28 @@ impl State3 {
         Ok(tx_id)
     }
 
-    pub async fn refund_xmr(
+    pub async fn refund_bdx(
         &self,
-        monero_wallet: &monero::Wallet,
-        monero_wallet_restore_blockheight: BlockHeight,
+        beldex_wallet: &beldex::Wallet,
+        beldex_wallet_restore_blockheight: BlockHeight,
         file_name: String,
-        spend_key: monero::PrivateKey,
+        spend_key: beldex::PrivateKey,
         transfer_proof: TransferProof,
     ) -> Result<()> {
         let view_key = self.v;
 
-        // Ensure that the XMR to be refunded are spendable by awaiting 10 confirmations
+        // Ensure that the BDX to be refunded are spendable by awaiting 10 confirmations
         // on the lock transaction
-        monero_wallet
-            .watch_for_transfer(self.lock_xmr_watch_request(transfer_proof, 10))
+        beldex_wallet
+            .watch_for_transfer(self.lock_bdx_watch_request(transfer_proof, 10))
             .await?;
 
-        monero_wallet
+        beldex_wallet
             .create_from(
                 file_name,
                 spend_key,
                 view_key,
-                monero_wallet_restore_blockheight,
+                beldex_wallet_restore_blockheight,
             )
             .await?;
 

@@ -1,6 +1,6 @@
 import { Tooltip } from "@material-ui/core";
 import { useAppSelector } from "store/hooks";
-import { piconerosToXmr, satsToBtc } from "utils/conversionUtils";
+import { piconerosToBeldex, satsToBtc } from "utils/conversionUtils";
 
 type Amount = number | null | undefined;
 
@@ -51,38 +51,38 @@ export function BitcoinAmount({ amount }: { amount: Amount }) {
   );
 }
 
-export function MoneroAmount({ amount }: { amount: Amount }) {
-  const xmrUsdRate = useAppSelector((state) => state.rates.xmrPrice);
+export function BeldexAmount({ amount }: { amount: Amount }) {
+  const bdxUsdRate = useAppSelector((state) => state.rates.bdxPrice);
 
   return (
     <AmountWithUnit
       amount={amount}
-      unit="XMR"
+      unit="BDX"
       fixedPrecision={4}
-      dollarRate={xmrUsdRate}
+      dollarRate={bdxUsdRate}
     />
   );
 }
 
-export function MoneroBitcoinExchangeRate(
+export function BeldexBitcoinExchangeRate(
   state: { rate: Amount } | { satsAmount: number; piconeroAmount: number },
 ) {
   if ("rate" in state) {
     return (
-      <AmountWithUnit amount={state.rate} unit="BTC/XMR" fixedPrecision={8} />
+      <AmountWithUnit amount={state.rate} unit="BTC/BDX" fixedPrecision={8} />
     );
   }
 
   const rate =
-    satsToBtc(state.satsAmount) / piconerosToXmr(state.piconeroAmount);
+    satsToBtc(state.satsAmount) / piconerosToBeldex(state.piconeroAmount);
 
-  return <AmountWithUnit amount={rate} unit="BTC/XMR" fixedPrecision={8} />;
+  return <AmountWithUnit amount={rate} unit="BTC/BDX" fixedPrecision={8} />;
 }
 
-export function MoneroSatsExchangeRate({ rate }: { rate: Amount }) {
+export function BeldexSatsExchangeRate({ rate }: { rate: Amount }) {
   const btc = satsToBtc(rate);
 
-  return <AmountWithUnit amount={btc} unit="BTC/XMR" fixedPrecision={6} />;
+  return <AmountWithUnit amount={btc} unit="BTC/BDX" fixedPrecision={6} />;
 }
 
 export function SatsAmount({ amount }: { amount: Amount }) {
@@ -92,6 +92,6 @@ export function SatsAmount({ amount }: { amount: Amount }) {
 
 export function PiconeroAmount({ amount }: { amount: Amount }) {
   return (
-    <MoneroAmount amount={amount == null ? null : piconerosToXmr(amount)} />
+    <BeldexAmount amount={amount == null ? null : piconerosToBeldex(amount)} />
   );
 }

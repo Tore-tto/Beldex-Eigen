@@ -1,11 +1,11 @@
 use crate::bitcoin::bitcoin_address;
 use crate::cli::api::request::{
-    BalanceArgs, BuyXmrArgs, CancelAndRefundArgs, GetCurrentSwapArgs, GetHistoryArgs, GetLogsArgs,
-    GetSwapInfoArgs, ListSellersArgs, MoneroRecoveryArgs, Request, ResumeSwapArgs,
+    BalanceArgs, BuyBeldexArgs, CancelAndRefundArgs, GetCurrentSwapArgs, GetHistoryArgs, GetLogsArgs,
+    GetSwapInfoArgs, ListSellersArgs, BeldexRecoveryArgs, Request, ResumeSwapArgs,
     SuspendCurrentSwapArgs, WithdrawBtcArgs,
 };
 use crate::cli::api::Context;
-use crate::monero::monero_address;
+use crate::beldex::beldex_address;
 use anyhow::Result;
 use jsonrpsee::server::RpcModule;
 
@@ -69,9 +69,9 @@ pub fn register_modules(outer_context: Context) -> Result<RpcModule<Context>> {
     })?;
 
     module.register_async_method(
-        "get_monero_recovery_info",
+        "get_beldex_recovery_info",
         |params_raw, context| async move {
-            let params: MoneroRecoveryArgs = params_raw.parse()?;
+            let params: BeldexRecoveryArgs = params_raw.parse()?;
 
             params.request(context).await.to_jsonrpsee_result()
         },
@@ -87,8 +87,8 @@ pub fn register_modules(outer_context: Context) -> Result<RpcModule<Context>> {
         params.request(context).await.to_jsonrpsee_result()
     })?;
 
-    module.register_async_method("buy_xmr", |params_raw, context| async move {
-        let mut params: BuyXmrArgs = params_raw.parse()?;
+    module.register_async_method("buy_bdx", |params_raw, context| async move {
+        let mut params: BuyBeldexArgs = params_raw.parse()?;
 
         params.bitcoin_change_address = bitcoin_address::validate(
             params.bitcoin_change_address,
@@ -96,9 +96,9 @@ pub fn register_modules(outer_context: Context) -> Result<RpcModule<Context>> {
         )
         .to_jsonrpsee_result()?;
 
-        params.monero_receive_address = monero_address::validate(
-            params.monero_receive_address,
-            context.config.env_config.monero_network,
+        params.beldex_receive_address = beldex_address::validate(
+            params.beldex_receive_address,
+            context.config.env_config.beldex_network,
         )
         .to_jsonrpsee_result()?;
 

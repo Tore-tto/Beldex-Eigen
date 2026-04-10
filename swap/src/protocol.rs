@@ -2,7 +2,7 @@ use crate::protocol::alice::swap::is_complete as alice_is_complete;
 use crate::protocol::alice::AliceState;
 use crate::protocol::bob::swap::is_complete as bob_is_complete;
 use crate::protocol::bob::BobState;
-use crate::{bitcoin, monero};
+use crate::{bitcoin, beldex};
 use anyhow::Result;
 use async_trait::async_trait;
 use conquer_once::Lazy;
@@ -30,10 +30,10 @@ pub static CROSS_CURVE_PROOF_SYSTEM: Lazy<
 pub struct Message0 {
     swap_id: Uuid,
     B: bitcoin::PublicKey,
-    S_b_monero: monero::PublicKey,
+    S_b_beldex: beldex::PublicKey,
     S_b_bitcoin: bitcoin::PublicKey,
     dleq_proof_s_b: CrossCurveDLEQProof,
-    v_b: monero::PrivateViewKey,
+    v_b: beldex::PrivateViewKey,
     refund_address: bitcoin::Address,
     #[serde(with = "::bitcoin::util::amount::serde::as_sat")]
     tx_refund_fee: bitcoin::Amount,
@@ -44,10 +44,10 @@ pub struct Message0 {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Message1 {
     A: bitcoin::PublicKey,
-    S_a_monero: monero::PublicKey,
+    S_a_beldex: beldex::PublicKey,
     S_a_bitcoin: bitcoin::PublicKey,
     dleq_proof_s_a: CrossCurveDLEQProof,
-    v_a: monero::PrivateViewKey,
+    v_a: beldex::PrivateViewKey,
     redeem_address: bitcoin::Address,
     punish_address: bitcoin::Address,
     #[serde(with = "::bitcoin::util::amount::serde::as_sat")]
@@ -135,8 +135,8 @@ impl TryInto<AliceState> for State {
 pub trait Database {
     async fn insert_peer_id(&self, swap_id: Uuid, peer_id: PeerId) -> Result<()>;
     async fn get_peer_id(&self, swap_id: Uuid) -> Result<PeerId>;
-    async fn insert_monero_address(&self, swap_id: Uuid, address: monero::Address) -> Result<()>;
-    async fn get_monero_address(&self, swap_id: Uuid) -> Result<monero::Address>;
+    async fn insert_beldex_address(&self, swap_id: Uuid, address: beldex::Address) -> Result<()>;
+    async fn get_beldex_address(&self, swap_id: Uuid) -> Result<beldex::Address>;
     async fn insert_address(&self, peer_id: PeerId, address: Multiaddr) -> Result<()>;
     async fn get_addresses(&self, peer_id: PeerId) -> Result<Vec<Multiaddr>>;
     async fn get_swap_start_date(&self, swap_id: Uuid) -> Result<String>;
@@ -147,10 +147,10 @@ pub trait Database {
     async fn insert_buffered_transfer_proof(
         &self,
         swap_id: Uuid,
-        proof: monero::TransferProof,
+        proof: beldex::TransferProof,
     ) -> Result<()>;
     async fn get_buffered_transfer_proof(
         &self,
         swap_id: Uuid,
-    ) -> Result<Option<monero::TransferProof>>;
+    ) -> Result<Option<beldex::TransferProof>>;
 }

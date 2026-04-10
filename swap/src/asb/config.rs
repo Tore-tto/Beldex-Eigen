@@ -25,7 +25,7 @@ pub struct Defaults {
     listen_address_tcp: Multiaddr,
     listen_address_ws: Multiaddr,
     electrum_rpc_url: Url,
-    monero_wallet_rpc_url: Url,
+    beldex_wallet_rpc_url: Url,
     price_ticker_ws_url: Url,
     bitcoin_confirmation_target: usize,
 }
@@ -40,7 +40,7 @@ impl GetDefaults for Testnet {
             listen_address_tcp: Multiaddr::from_str("/ip4/0.0.0.0/tcp/9939")?,
             listen_address_ws: Multiaddr::from_str("/ip4/0.0.0.0/tcp/9940/ws")?,
             electrum_rpc_url: Url::parse("ssl://electrum.blockstream.info:60002")?,
-            monero_wallet_rpc_url: Url::parse("http://127.0.0.1:38083/json_rpc")?,
+            beldex_wallet_rpc_url: Url::parse("http://127.0.0.1:38083/json_rpc")?,
             price_ticker_ws_url: Url::parse("wss://ws.kraken.com")?,
             bitcoin_confirmation_target: 1,
         };
@@ -59,7 +59,7 @@ impl GetDefaults for Mainnet {
             listen_address_tcp: Multiaddr::from_str("/ip4/0.0.0.0/tcp/9939")?,
             listen_address_ws: Multiaddr::from_str("/ip4/0.0.0.0/tcp/9940/ws")?,
             electrum_rpc_url: Url::parse("ssl://blockstream.info:700")?,
-            monero_wallet_rpc_url: Url::parse("http://127.0.0.1:18083/json_rpc")?,
+            beldex_wallet_rpc_url: Url::parse("http://127.0.0.1:18083/json_rpc")?,
             price_ticker_ws_url: Url::parse("wss://ws.kraken.com")?,
             bitcoin_confirmation_target: 3,
         };
@@ -90,7 +90,7 @@ pub struct Config {
     pub data: Data,
     pub network: Network,
     pub bitcoin: Bitcoin,
-    pub monero: Monero,
+    pub beldex: Beldex,
     pub tor: TorConf,
     pub maker: Maker,
 }
@@ -193,11 +193,11 @@ pub struct Bitcoin {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct Monero {
+pub struct Beldex {
     pub wallet_rpc_url: Url,
     pub finality_confirmations: Option<u64>,
-    #[serde(with = "crate::monero::network")]
-    pub network: monero::Network,
+    #[serde(with = "crate::beldex::network")]
+    pub network: beldex::Network,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
@@ -262,21 +262,21 @@ pub fn initial_setup(config_path: PathBuf, config: Config) -> Result<()> {
 }
 
 pub fn query_user_for_initial_config(testnet: bool) -> Result<Config> {
-    let (bitcoin_network, monero_network, defaults) = if testnet {
+    let (bitcoin_network, beldex_network, defaults) = if testnet {
         tracing::info!("Running initial setup for testnet");
 
         let bitcoin_network = bitcoin::Network::Testnet;
-        let monero_network = monero::Network::Stagenet;
+        let beldex_network = beldex::Network::Stagenet;
         let defaults = Testnet::getConfigFileDefaults()?;
 
-        (bitcoin_network, monero_network, defaults)
+        (bitcoin_network, beldex_network, defaults)
     } else {
         tracing::info!("Running initial setup for mainnet");
         let bitcoin_network = bitcoin::Network::Bitcoin;
-        let monero_network = monero::Network::Mainnet;
+        let beldex_network = beldex::Network::Mainnet;
         let defaults = Mainnet::getConfigFileDefaults()?;
 
-        (bitcoin_network, monero_network, defaults)
+        (bitcoin_network, beldex_network, defaults)
     };
 
     println!();
@@ -311,9 +311,9 @@ pub fn query_user_for_initial_config(testnet: bool) -> Result<Config> {
         .default(defaults.electrum_rpc_url)
         .interact_text()?;
 
-    let monero_wallet_rpc_url = Input::with_theme(&ColorfulTheme::default())
-        .with_prompt("Enter Monero Wallet RPC URL or hit enter to use default")
-        .default(defaults.monero_wallet_rpc_url)
+    let beldex_wallet_rpc_url = Input::with_theme(&ColorfulTheme::default())
+        .with_prompt("Enter Beldex Wallet RPC URL or hit enter to use default")
+        .default(defaults.beldex_wallet_rpc_url)
         .interact_text()?;
 
     let tor_control_port = Input::with_theme(&ColorfulTheme::default())
@@ -384,10 +384,10 @@ pub fn query_user_for_initial_config(testnet: bool) -> Result<Config> {
             finality_confirmations: None,
             network: bitcoin_network,
         },
-        monero: Monero {
-            wallet_rpc_url: monero_wallet_rpc_url,
+        beldex: Beldex {
+            wallet_rpc_url: beldex_wallet_rpc_url,
             finality_confirmations: None,
-            network: monero_network,
+            network: beldex_network,
         },
         tor: TorConf {
             control_port: tor_control_port,
@@ -433,10 +433,10 @@ mod tests {
                 rendezvous_point: vec![],
                 external_addresses: vec![],
             },
-            monero: Monero {
-                wallet_rpc_url: defaults.monero_wallet_rpc_url,
+            beldex: Beldex {
+                wallet_rpc_url: defaults.beldex_wallet_rpc_url,
                 finality_confirmations: None,
-                network: monero::Network::Stagenet,
+                network: beldex::Network::Stagenet,
             },
             tor: Default::default(),
             maker: Maker {
@@ -477,10 +477,10 @@ mod tests {
                 rendezvous_point: vec![],
                 external_addresses: vec![],
             },
-            monero: Monero {
-                wallet_rpc_url: defaults.monero_wallet_rpc_url,
+            beldex: Beldex {
+                wallet_rpc_url: defaults.beldex_wallet_rpc_url,
                 finality_confirmations: None,
-                network: monero::Network::Mainnet,
+                network: beldex::Network::Mainnet,
             },
             tor: Default::default(),
             maker: Maker {
@@ -531,10 +531,10 @@ mod tests {
                 rendezvous_point: vec![],
                 external_addresses,
             },
-            monero: Monero {
-                wallet_rpc_url: defaults.monero_wallet_rpc_url,
+            beldex: Beldex {
+                wallet_rpc_url: defaults.beldex_wallet_rpc_url,
                 finality_confirmations: None,
-                network: monero::Network::Mainnet,
+                network: beldex::Network::Mainnet,
             },
             tor: Default::default(),
             maker: Maker {

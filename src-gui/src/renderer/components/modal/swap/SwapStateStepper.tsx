@@ -28,29 +28,29 @@ function getActiveStep(
     case BobStateName.SwapSetupCompleted:
       return [PathType.HAPPY_PATH, 0, processExited];
 
-    // Step: 1 (Waiting for Bitcoin Lock confirmation and XMR Lock Publication)
-    // We have locked the Bitcoin and are waiting for the other party to lock their XMR
+    // Step: 1 (Waiting for Bitcoin Lock confirmation and BDX Lock Publication)
+    // We have locked the Bitcoin and are waiting for the other party to lock their BDX
     case BobStateName.BtcLocked:
       return [PathType.HAPPY_PATH, 1, processExited];
 
-    // Step: 2 (Waiting for XMR Lock confirmation)
-    // We have locked the Bitcoin and the other party has locked their XMR
-    case BobStateName.XmrLockProofReceived:
+    // Step: 2 (Waiting for BDX Lock confirmation)
+    // We have locked the Bitcoin and the other party has locked their BDX
+    case BobStateName.BeldexLockProofReceived:
       return [PathType.HAPPY_PATH, 1, processExited];
 
     // Step: 3 (Sending Encrypted Signature and waiting for Bitcoin Redemption)
-    // The XMR lock transaction has been confirmed
+    // The BDX lock transaction has been confirmed
     // We now need to send the encrypted signature to the other party and wait for them to redeem the Bitcoin
-    case BobStateName.XmrLocked:
+    case BobStateName.BeldexLocked:
     case BobStateName.EncSigSent:
       return [PathType.HAPPY_PATH, 2, processExited];
 
-    // Step: 4 (Waiting for XMR Redemption)
+    // Step: 4 (Waiting for BDX Redemption)
     case BobStateName.BtcRedeemed:
       return [PathType.HAPPY_PATH, 3, processExited];
 
-    // Step: 4 (Completed) (Swap completed, XMR redeemed)
-    case BobStateName.XmrRedeemed:
+    // Step: 4 (Completed) (Swap completed, BDX redeemed)
+    case BobStateName.BeldexRedeemed:
       return [PathType.HAPPY_PATH, 4, false];
 
     // Edge Case of Happy Path where the swap is safely aborted. We "fail" at the first step.
@@ -102,7 +102,7 @@ function HappyPathStepper({
           optional={<Typography variant="caption">~18min</Typography>}
           error={error && activeStep === 1}
         >
-          They lock their XMR
+          They lock their BDX
         </StepLabel>
       </Step>
       <Step key={2}>
@@ -118,7 +118,7 @@ function HappyPathStepper({
           optional={<Typography variant="caption">~2min</Typography>}
           error={error && activeStep === 3}
         >
-          Redeeming your XMR
+          Redeeming your BDX
         </StepLabel>
       </Step>
     </Stepper>

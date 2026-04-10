@@ -135,7 +135,7 @@ mod connection {
             .context("Failed to connect to Kraken websocket API")?;
 
         rate_stream
-            .send(SUBSCRIBE_XMR_BTC_TICKER_PAYLOAD.into())
+            .send(SUBSCRIBE_BDX_BTC_TICKER_PAYLOAD.into())
             .await?;
 
         let stream = rate_stream.err_into().try_filter_map(parse_message).boxed();
@@ -213,9 +213,9 @@ mod connection {
         Parse(#[from] wire::Error),
     }
 
-    const SUBSCRIBE_XMR_BTC_TICKER_PAYLOAD: &str = r#"
+    const SUBSCRIBE_BDX_BTC_TICKER_PAYLOAD: &str = r#"
     { "event": "subscribe",
-      "pair": [ "XMR/XBT" ],
+      "pair": [ "BDX/XBT" ],
       "subscription": {
         "name": "ticker"
       }
@@ -325,7 +325,7 @@ mod wire {
 
         #[test]
         fn can_deserialize_subscription_status_event() {
-            let event = r#"{"channelID":980,"channelName":"ticker","event":"subscriptionStatus","pair":"XMR/XBT","status":"subscribed","subscription":{"name":"ticker"}}"#;
+            let event = r#"{"channelID":980,"channelName":"ticker","event":"subscriptionStatus","pair":"BDX/XBT","status":"subscribed","subscription":{"name":"ticker"}}"#;
 
             let event = serde_json::from_str::<Event>(event).unwrap();
 
@@ -334,7 +334,7 @@ mod wire {
 
         #[test]
         fn deserialize_ticker_update() {
-            let message = r#"[980,{"a":["0.00440700",7,"7.35318535"],"b":["0.00440200",7,"7.57416678"],"c":["0.00440700","0.22579000"],"v":["273.75489000","4049.91233351"],"p":["0.00446205","0.00441699"],"t":[123,1310],"l":["0.00439400","0.00429900"],"h":["0.00450000","0.00450000"],"o":["0.00449100","0.00433700"]},"ticker","XMR/XBT"]"#;
+            let message = r#"[980,{"a":["0.00440700",7,"7.35318535"],"b":["0.00440200",7,"7.57416678"],"c":["0.00440700","0.22579000"],"v":["273.75489000","4049.91233351"],"p":["0.00446205","0.00441699"],"t":[123,1310],"l":["0.00439400","0.00429900"],"h":["0.00450000","0.00450000"],"o":["0.00449100","0.00433700"]},"ticker","BDX/XBT"]"#;
 
             let _ = serde_json::from_str::<TickerUpdate>(message).unwrap();
         }

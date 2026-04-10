@@ -23,9 +23,9 @@ pub async fn punish(
         // Punish potentially possible (no knowledge of cancel transaction)
         AliceState::BtcLockTransactionSeen { state3 }
         | AliceState::BtcLocked { state3, .. }
-        | AliceState::XmrLockTransactionSent {state3, ..}
-        | AliceState::XmrLocked {state3, ..}
-        | AliceState::XmrLockTransferProofSent {state3, ..}
+        | AliceState::BeldexLockTransactionSent {state3, ..}
+        | AliceState::BeldexLocked {state3, ..}
+        | AliceState::BeldexLockTransferProofSent {state3, ..}
         | AliceState::EncSigLearned {state3, ..}
         | AliceState::CancelTimelockExpired {state3, ..}
         // Punish possible due to cancel transaction already being published
@@ -37,7 +37,7 @@ pub async fn punish(
         | AliceState::Started { state3 }  => { state3 }
         // Alice already in final state
         | AliceState::BtcRedeemed
-        | AliceState::XmrRefunded
+        | AliceState::BeldexRefunded
         | AliceState::BtcPunished { .. }
         | AliceState::SafelyAborted => bail!(Error::SwapNotPunishable(state)),
     };

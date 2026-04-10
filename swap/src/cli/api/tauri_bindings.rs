@@ -1,4 +1,4 @@
-use crate::{monero, network::quote::BidQuote};
+use crate::{beldex, network::quote::BidQuote};
 use anyhow::Result;
 use bitcoin::Txid;
 use serde::Serialize;
@@ -68,7 +68,7 @@ impl TauriEmitter for Option<TauriHandle> {
 #[derive(Display, Clone, Serialize)]
 pub enum TauriContextInitializationProgress {
     OpeningBitcoinWallet,
-    OpeningMoneroWallet,
+    OpeningBeldexWallet,
     OpeningDatabase,
 }
 
@@ -126,19 +126,19 @@ pub enum TauriSwapProgressEvent {
         #[typeshare(serialized_as = "number")]
         btc_lock_confirmations: u64,
     },
-    XmrLockTxInMempool {
+    BeldexLockTxInMempool {
         #[typeshare(serialized_as = "string")]
-        xmr_lock_txid: monero::TxHash,
+        bdx_lock_txid: beldex::TxHash,
         #[typeshare(serialized_as = "number")]
-        xmr_lock_tx_confirmations: u64,
+        bdx_lock_tx_confirmations: u64,
     },
-    XmrLocked,
+    BeldexLocked,
     BtcRedeemed,
-    XmrRedeemInMempool {
+    BeldexRedeemInMempool {
         #[typeshare(serialized_as = "string")]
-        xmr_redeem_txid: monero::TxHash,
+        bdx_redeem_txid: beldex::TxHash,
         #[typeshare(serialized_as = "string")]
-        xmr_redeem_address: monero::Address,
+        bdx_redeem_address: beldex::Address,
     },
     BtcCancelled {
         #[typeshare(serialized_as = "string")]

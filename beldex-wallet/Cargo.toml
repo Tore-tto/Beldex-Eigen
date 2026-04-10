@@ -1,0 +1,19 @@
+[package]
+name = "beldex-wallet"
+version = "0.1.0"
+authors = [ "CoBloX Team <team@coblox.tech>" ]
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+beldex = { package = "monero", version = "0.12" }
+beldex-rpc = { path = "../beldex-rpc" }
+rand = "0.7"
+
+[dev-dependencies]
+curve25519-dalek = "3"
+beldex-harness = { path = "../beldex-harness" }
+rand = "0.7"
+testcontainers = "0.15"
+tokio = { version = "1", features = [ "rt-multi-thread", "time", "macros", "sync", "process", "fs" ] }
+tracing-subscriber = { version = "0.3", default-features = false, features = [ "fmt", "ansi", "env-filter", "chrono", "tracing-log" ] }

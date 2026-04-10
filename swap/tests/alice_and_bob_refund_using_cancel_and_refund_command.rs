@@ -1,6 +1,6 @@
 pub mod harness;
 
-use harness::alice_run_until::is_xmr_lock_transaction_sent;
+use harness::alice_run_until::is_bdx_lock_transaction_sent;
 use harness::bob_run_until::is_btc_locked;
 use harness::FastCancelConfig;
 use swap::asb::FixedRate;
@@ -19,7 +19,7 @@ async fn given_alice_and_bob_manually_refund_after_funds_locked_both_refund() {
         let alice_swap = ctx.alice_next_swap().await;
         let alice_swap = tokio::spawn(alice::run_until(
             alice_swap,
-            is_xmr_lock_transaction_sent,
+            is_bdx_lock_transaction_sent,
             FixedRate::default(),
         ));
 
@@ -29,7 +29,7 @@ async fn given_alice_and_bob_manually_refund_after_funds_locked_both_refund() {
         let alice_state = alice_swap.await??;
         assert!(matches!(
             alice_state,
-            AliceState::XmrLockTransactionSent { .. }
+            AliceState::BeldexLockTransactionSent { .. }
         ));
 
         let (bob_swap, bob_join_handle) = ctx
@@ -70,7 +70,7 @@ async fn given_alice_and_bob_manually_refund_after_funds_locked_both_refund() {
         let alice_state = asb::refund(
             alice_swap.swap_id,
             alice_swap.bitcoin_wallet,
-            alice_swap.monero_wallet,
+            alice_swap.beldex_wallet,
             alice_swap.db,
         )
         .await?;

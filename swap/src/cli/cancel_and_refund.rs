@@ -33,15 +33,15 @@ pub async fn cancel(
     let state6 = match state {
         BobState::BtcLocked {
             state3,
-            monero_wallet_restore_blockheight,
+            beldex_wallet_restore_blockheight,
             ..
-        } => state3.cancel(monero_wallet_restore_blockheight),
-        BobState::XmrLockProofReceived {
+        } => state3.cancel(beldex_wallet_restore_blockheight),
+        BobState::BeldexLockProofReceived {
             state,
-            monero_wallet_restore_blockheight,
+            beldex_wallet_restore_blockheight,
             ..
-        } => state.cancel(monero_wallet_restore_blockheight),
-        BobState::XmrLocked(state4) => state4.cancel(),
+        } => state.cancel(beldex_wallet_restore_blockheight),
+        BobState::BeldexLocked(state4) => state4.cancel(),
         BobState::EncSigSent(state4) => state4.cancel(),
         BobState::CancelTimelockExpired(state6) => state6,
         BobState::BtcRefunded(state6) => state6,
@@ -50,7 +50,7 @@ pub async fn cancel(
         BobState::Started { .. }
         | BobState::SwapSetupCompleted(_)
         | BobState::BtcRedeemed(_)
-        | BobState::XmrRedeemed { .. }
+        | BobState::BeldexRedeemed { .. }
         | BobState::BtcPunished { .. }
         | BobState::SafelyAborted => bail!(
             "Cannot cancel swap {} because it is in state {} which is not cancellable.",
@@ -129,14 +129,14 @@ pub async fn refund(
     let state6 = match state {
         BobState::BtcLocked {
             state3,
-            monero_wallet_restore_blockheight,
-        } => state3.cancel(monero_wallet_restore_blockheight),
-        BobState::XmrLockProofReceived {
+            beldex_wallet_restore_blockheight,
+        } => state3.cancel(beldex_wallet_restore_blockheight),
+        BobState::BeldexLockProofReceived {
             state,
-            monero_wallet_restore_blockheight,
+            beldex_wallet_restore_blockheight,
             ..
-        } => state.cancel(monero_wallet_restore_blockheight),
-        BobState::XmrLocked(state4) => state4.cancel(),
+        } => state.cancel(beldex_wallet_restore_blockheight),
+        BobState::BeldexLocked(state4) => state4.cancel(),
         BobState::EncSigSent(state4) => state4.cancel(),
         BobState::CancelTimelockExpired(state6) => state6,
         BobState::BtcCancelled(state6) => state6,
@@ -144,7 +144,7 @@ pub async fn refund(
         | BobState::SwapSetupCompleted(_)
         | BobState::BtcRedeemed(_)
         | BobState::BtcRefunded(_)
-        | BobState::XmrRedeemed { .. }
+        | BobState::BeldexRedeemed { .. }
         | BobState::BtcPunished { .. }
         | BobState::SafelyAborted => bail!(
             "Cannot refund swap {} because it is in state {} which is not refundable.",

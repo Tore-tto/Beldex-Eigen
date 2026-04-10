@@ -1,10 +1,10 @@
-use crate::{bitcoin, monero};
+use crate::{bitcoin, beldex};
 use anyhow::{Context, Result};
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use std::fmt::{Debug, Display, Formatter};
 
-/// Represents the rate at which we are willing to trade 1 XMR.
+/// Represents the rate at which we are willing to trade 1 BDX.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Rate {
     /// Represents the asking price from the market.
@@ -25,7 +25,7 @@ impl Rate {
         Self { ask, ask_spread }
     }
 
-    /// Computes the asking price at which we are willing to sell 1 XMR.
+    /// Computes the asking price at which we are willing to sell 1 BDX.
     ///
     /// This applies the spread to the market asking price.
     pub fn ask(&self) -> Result<bitcoin::Amount> {
@@ -43,12 +43,12 @@ impl Rate {
     }
 
     /// Calculate a sell quote for a given BTC amount.
-    pub fn sell_quote(&self, quote: bitcoin::Amount) -> Result<monero::Amount> {
+    pub fn sell_quote(&self, quote: bitcoin::Amount) -> Result<beldex::Amount> {
         Self::quote(self.ask()?, quote)
     }
 
-    fn quote(rate: bitcoin::Amount, quote: bitcoin::Amount) -> Result<monero::Amount> {
-        // quote (btc) = rate * base (xmr)
+    fn quote(rate: bitcoin::Amount, quote: bitcoin::Amount) -> Result<beldex::Amount> {
+        // quote (btc) = rate * base (bdx)
         // base = quote / rate
 
         let quote_in_sats = quote.to_sat();
@@ -60,16 +60,16 @@ impl Rate {
             .checked_div(Decimal::from(bitcoin::Amount::ONE_BTC.to_sat()))
             .context("Division overflow")?;
 
-        let base_in_xmr = quote_in_btc
+        let base_in_bdx = quote_in_btc
             .checked_div(rate_in_btc)
             .context("Division overflow")?;
-        let base_in_piconero = base_in_xmr * Decimal::from(monero::Amount::ONE_XMR.as_piconero());
+        let base_in_atomic = base_in_bdx * Decimal::from(beldex::Amount::ONE_BDX.as_atomic());
 
-        let base_in_piconero = base_in_piconero
+        let base_in_atomic = base_in_atomic
             .to_u64()
-            .context("Failed to fit piconero amount into a u64")?;
+            .context("Failed to fit atomic amount into a u64")?;
 
-        Ok(monero::Amount::from_piconero(base_in_piconero))
+        Ok(beldex::Amount::from_atomic(base_in_atomic))
     }
 }
 
@@ -93,9 +93,9 @@ mod tests {
 
         let btc_amount = bitcoin::Amount::from_btc(2.5).unwrap();
 
-        let xmr_amount = rate.sell_quote(btc_amount).unwrap();
+        let bdx_amount = rate.sell_quote(btc_amount).unwrap();
 
-        assert_eq!(xmr_amount, monero::Amount::from_monero(1000.0).unwrap())
+        assert_eq!(bdx_amount, beldex::Amount::from_beldex(1000.0).unwrap())
     }
 
     #[test]
@@ -116,16 +116,16 @@ mod tests {
         let rate_no_spread = Rate::new(asking_price, ZERO_SPREAD);
         let rate_with_spread = Rate::new(asking_price, TWO_PERCENT);
 
-        let xmr_no_spread = rate_no_spread.sell_quote(bitcoin::Amount::ONE_BTC).unwrap();
-        let xmr_with_spread = rate_with_spread
+        let bdx_no_spread = rate_no_spread.sell_quote(bitcoin::Amount::ONE_BTC).unwrap();
+        let bdx_with_spread = rate_with_spread
             .sell_quote(bitcoin::Amount::ONE_BTC)
             .unwrap();
 
-        let xmr_factor =
-            xmr_no_spread.as_piconero_decimal() / xmr_with_spread.as_piconero_decimal() - ONE;
+        let bdx_factor =
+            bdx_no_spread.as_atomic_decimal() / bdx_with_spread.as_atomic_decimal() - ONE;
 
-        assert!(xmr_with_spread < xmr_no_spread);
-        assert_eq!(xmr_factor.round_dp(8), TWO_PERCENT); // round to 8 decimal
+        assert!(bdx_with_spread < bdx_no_spread);
+        assert_eq!(bdx_factor.round_dp(8), TWO_PERCENT); // round to 8 decimal
                                                          // places to show that
                                                          // it is really close
                                                          // to two percent

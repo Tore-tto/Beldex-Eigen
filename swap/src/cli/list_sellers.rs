@@ -1,5 +1,5 @@
 use crate::network::quote::BidQuote;
-use crate::network::rendezvous::XmrBtcNamespace;
+use crate::network::rendezvous::BeldexBtcNamespace;
 use crate::network::{quote, swarm};
 use anyhow::{Context, Result};
 use futures::StreamExt;
@@ -24,7 +24,7 @@ use std::time::Duration;
 pub async fn list_sellers(
     rendezvous_node_peer_id: PeerId,
     rendezvous_node_addr: Multiaddr,
-    namespace: XmrBtcNamespace,
+    namespace: BeldexBtcNamespace,
     tor_socks5_port: u16,
     identity: identity::Keypair,
 ) -> Result<Vec<Seller>> {
@@ -118,7 +118,7 @@ struct EventLoop {
     swarm: Swarm<Behaviour>,
     rendezvous_peer_id: PeerId,
     rendezvous_addr: Multiaddr,
-    namespace: XmrBtcNamespace,
+    namespace: BeldexBtcNamespace,
     reachable_asb_address: HashMap<PeerId, Multiaddr>,
     unreachable_asb_address: HashMap<PeerId, Multiaddr>,
     asb_quote_status: HashMap<PeerId, QuoteStatus>,
@@ -130,7 +130,7 @@ impl EventLoop {
         swarm: Swarm<Behaviour>,
         rendezvous_peer_id: PeerId,
         rendezvous_addr: Multiaddr,
-        namespace: XmrBtcNamespace,
+        namespace: BeldexBtcNamespace,
     ) -> Self {
         Self {
             swarm,

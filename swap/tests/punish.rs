@@ -6,8 +6,8 @@ use swap::asb::FixedRate;
 use swap::protocol::bob::BobState;
 use swap::protocol::{alice, bob};
 
-/// Bob locks Btc and Alice locks Xmr. Bob does not act; he fails to send Alice
-/// the encsig and fail to refund or redeem. Alice punishes. Bob then cooperates with Alice and redeems XMR with her key.
+/// Bob locks Btc and Alice locks Beldex. Bob does not act; he fails to send Alice
+/// the encsig and fail to refund or redeem. Alice punishes. Bob then cooperates with Alice and redeems BDX with her key.
 #[tokio::test]
 async fn alice_punishes_if_bob_never_acts_after_fund() {
     harness::setup_test(FastPunishConfig, |mut ctx| async move {

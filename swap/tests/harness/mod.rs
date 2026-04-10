@@ -8,7 +8,7 @@ use futures::Future;
 use get_port::get_port;
 use libp2p::core::Multiaddr;
 use libp2p::PeerId;
-use monero_harness::{image, Monero};
+use beldex_harness::{image, Beldex};
 use std::cmp::Ordering;
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -20,13 +20,13 @@ use swap::cli::api;
 use swap::database::SqliteDatabase;
 use swap::env::{Config, GetConfig};
 use swap::fs::ensure_directory_exists;
-use swap::network::rendezvous::XmrBtcNamespace;
+use swap::network::rendezvous::BeldexBtcNamespace;
 use swap::network::swarm;
 use swap::protocol::alice::{AliceState, Swap};
 use swap::protocol::bob::BobState;
 use swap::protocol::{alice, bob, Database};
 use swap::seed::Seed;
-use swap::{asb, bitcoin, cli, env, monero};
+use swap::{asb, bitcoin, cli, env, beldex};
 use tempfile::{tempdir, NamedTempFile};
 use testcontainers::clients::Cli;
 use testcontainers::{Container, RunnableImage};
@@ -47,28 +47,28 @@ where
     let cli = Cli::default();
 
     let _guard = tracing_subscriber::fmt()
-        .with_env_filter("warn,swap=debug,monero_harness=debug,monero_rpc=debug,bitcoin_harness=info,testcontainers=info") // add `reqwest::connect::verbose=trace` if you want to logs of the RPC clients
+        .with_env_filter("warn,swap=debug,beldex_harness=debug,beldex_rpc=debug,bitcoin_harness=info,testcontainers=info") // add `reqwest::connect::verbose=trace` if you want to logs of the RPC clients
         .with_test_writer()
         .set_default();
 
     let env_config = C::get_config();
 
-    let (monero, containers) = init_containers(&cli).await;
-    monero.init_miner().await.unwrap();
+    let (beldex, containers) = init_containers(&cli).await;
+    beldex.init_miner().await.unwrap();
 
     let btc_amount = bitcoin::Amount::from_sat(1_000_000);
-    let xmr_amount = monero::Amount::from_monero(btc_amount.to_btc() / FixedRate::RATE).unwrap();
+    let bdx_amount = beldex::Amount::from_beldex(btc_amount.to_btc() / FixedRate::RATE).unwrap();
 
     let alice_starting_balances =
-        StartingBalances::new(bitcoin::Amount::ZERO, xmr_amount, Some(10));
+        StartingBalances::new(bitcoin::Amount::ZERO, bdx_amount, Some(10));
 
     let electrs_rpc_port = containers.electrs.get_host_port_ipv4(electrs::RPC_PORT);
 
     let alice_seed = Seed::random().unwrap();
-    let (alice_bitcoin_wallet, alice_monero_wallet) = init_test_wallets(
-        MONERO_WALLET_NAME_ALICE,
+    let (alice_bitcoin_wallet, alice_beldex_wallet) = init_test_wallets(
+        BELDEX_WALLET_NAME_ALICE,
         containers.bitcoind_url.clone(),
-        &monero,
+        &beldex,
         alice_starting_balances.clone(),
         tempdir().unwrap().path(),
         electrs_rpc_port,
@@ -89,17 +89,17 @@ where
         alice_listen_address.clone(),
         env_config,
         alice_bitcoin_wallet.clone(),
-        alice_monero_wallet.clone(),
+        alice_beldex_wallet.clone(),
     )
     .await;
 
     let bob_seed = Seed::random().unwrap();
-    let bob_starting_balances = StartingBalances::new(btc_amount * 10, monero::Amount::ZERO, None);
+    let bob_starting_balances = StartingBalances::new(btc_amount * 10, beldex::Amount::ZERO, None);
 
-    let (bob_bitcoin_wallet, bob_monero_wallet) = init_test_wallets(
-        MONERO_WALLET_NAME_BOB,
+    let (bob_bitcoin_wallet, bob_beldex_wallet) = init_test_wallets(
+        BELDEX_WALLET_NAME_BOB,
         containers.bitcoind_url,
-        &monero,
+        &beldex,
         bob_starting_balances.clone(),
         tempdir().unwrap().path(),
         electrs_rpc_port,
@@ -112,36 +112,36 @@ where
         seed: Seed::random().unwrap(),
         db_path: NamedTempFile::new().unwrap().path().to_path_buf(),
         bitcoin_wallet: bob_bitcoin_wallet.clone(),
-        monero_wallet: bob_monero_wallet.clone(),
+        beldex_wallet: bob_beldex_wallet.clone(),
         alice_address: alice_listen_address.clone(),
         alice_peer_id: alice_handle.peer_id,
         env_config,
     };
 
-    monero.start_miner().await.unwrap();
+    beldex.start_miner().await.unwrap();
 
     let test = TestContext {
         env_config,
         btc_amount,
-        xmr_amount,
+        bdx_amount,
         alice_seed,
         alice_db_path,
         alice_listen_address,
         alice_starting_balances,
         alice_bitcoin_wallet,
-        alice_monero_wallet,
+        alice_beldex_wallet,
         alice_swap_handle,
         alice_handle,
         bob_params,
         bob_starting_balances,
         bob_bitcoin_wallet,
-        bob_monero_wallet,
+        bob_beldex_wallet,
     };
 
     testfn(test).await.unwrap()
 }
 
-async fn init_containers(cli: &Cli) -> (Monero, Containers<'_>) {
+async fn init_containers(cli: &Cli) -> (Beldex, Containers<'_>) {
     let prefix = random_prefix();
     let bitcoind_name = format!("{}_{}", prefix, "bitcoind");
     let (_bitcoind, bitcoind_url, mapped_port) =
@@ -151,18 +151,18 @@ async fn init_containers(cli: &Cli) -> (Monero, Containers<'_>) {
     let electrs = init_electrs_container(cli, prefix.clone(), bitcoind_name, prefix, mapped_port)
         .await
         .expect("could not init electrs");
-    let (monero, _monerod_container, _monero_wallet_rpc_containers) =
-        Monero::new(cli, vec![MONERO_WALLET_NAME_ALICE, MONERO_WALLET_NAME_BOB])
+    let (beldex, _beldexd_container, _beldex_wallet_rpc_containers) =
+        Beldex::new(cli, vec![BELDEX_WALLET_NAME_ALICE, BELDEX_WALLET_NAME_BOB])
             .await
             .unwrap();
 
     (
-        monero,
+        beldex,
         Containers {
             bitcoind_url,
             _bitcoind,
-            _monerod_container,
-            _monero_wallet_rpc_containers,
+            _beldexd_container,
+            _beldex_wallet_rpc_containers,
             electrs,
         },
     )
@@ -224,7 +224,7 @@ async fn start_alice(
     listen_address: Multiaddr,
     env_config: Config,
     bitcoin_wallet: Arc<bitcoin::Wallet>,
-    monero_wallet: Arc<monero::Wallet>,
+    beldex_wallet: Arc<beldex::Wallet>,
 ) -> (AliceApplicationHandle, Receiver<alice::Swap>) {
     if let Some(parent_dir) = db_path.parent() {
         ensure_directory_exists(parent_dir).unwrap();
@@ -246,7 +246,7 @@ async fn start_alice(
         latest_rate,
         resume_only,
         env_config,
-        XmrBtcNamespace::Testnet,
+        BeldexBtcNamespace::Testnet,
         &[],
     )
     .unwrap();
@@ -256,7 +256,7 @@ async fn start_alice(
         swarm,
         env_config,
         bitcoin_wallet,
-        monero_wallet,
+        beldex_wallet,
         db,
         FixedRate::default(),
         min_buy,
@@ -275,27 +275,27 @@ async fn start_alice(
 async fn init_test_wallets(
     name: &str,
     bitcoind_url: Url,
-    monero: &Monero,
+    beldex: &Beldex,
     starting_balances: StartingBalances,
     datadir: &Path,
     electrum_rpc_port: u16,
     seed: &Seed,
     env_config: Config,
-) -> (Arc<bitcoin::Wallet>, Arc<monero::Wallet>) {
-    monero
+) -> (Arc<bitcoin::Wallet>, Arc<beldex::Wallet>) {
+    beldex
         .init_wallet(
             name,
             starting_balances
-                .xmr_outputs
+                .bdx_outputs
                 .into_iter()
-                .map(|amount| amount.as_piconero())
+                .map(|amount| amount.as_atomic())
                 .collect(),
         )
         .await
         .unwrap();
 
-    let xmr_wallet = swap::monero::Wallet::connect(
-        monero.wallet(name).unwrap().client().clone(),
+    let bdx_wallet = swap::beldex::Wallet::connect(
+        beldex.wallet(name).unwrap().client().clone(),
         name.to_string(),
         env_config,
     )
@@ -348,52 +348,52 @@ async fn init_test_wallets(
         }
     }
 
-    (Arc::new(btc_wallet), Arc::new(xmr_wallet))
+    (Arc::new(btc_wallet), Arc::new(bdx_wallet))
 }
 
-const MONERO_WALLET_NAME_BOB: &str = "bob";
-const MONERO_WALLET_NAME_ALICE: &str = "alice";
+const BELDEX_WALLET_NAME_BOB: &str = "bob";
+const BELDEX_WALLET_NAME_ALICE: &str = "alice";
 const BITCOIN_TEST_WALLET_NAME: &str = "testwallet";
 
 #[derive(Debug, Clone)]
 pub struct StartingBalances {
-    pub xmr: monero::Amount,
-    pub xmr_outputs: Vec<monero::Amount>,
+    pub bdx: beldex::Amount,
+    pub bdx_outputs: Vec<beldex::Amount>,
     pub btc: bitcoin::Amount,
 }
 
 impl StartingBalances {
-    /// If monero_outputs is specified the monero balance will be:
-    /// monero_outputs * new_xmr = self_xmr
-    pub fn new(btc: bitcoin::Amount, xmr: monero::Amount, monero_outputs: Option<u64>) -> Self {
-        match monero_outputs {
+    /// If beldex_outputs is specified the beldex balance will be:
+    /// beldex_outputs * new_bdx = self_bdx
+    pub fn new(btc: bitcoin::Amount, bdx: beldex::Amount, beldex_outputs: Option<u64>) -> Self {
+        match beldex_outputs {
             None => {
-                if xmr == monero::Amount::ZERO {
+                if bdx == beldex::Amount::ZERO {
                     return Self {
-                        xmr,
-                        xmr_outputs: vec![],
+                        bdx,
+                        bdx_outputs: vec![],
                         btc,
                     };
                 }
 
                 Self {
-                    xmr,
-                    xmr_outputs: vec![xmr],
+                    bdx,
+                    bdx_outputs: vec![bdx],
                     btc,
                 }
             }
             Some(outputs) => {
-                let mut xmr_outputs = Vec::new();
-                let mut sum_xmr = monero::Amount::ZERO;
+                let mut bdx_outputs = Vec::new();
+                let mut sum_bdx = beldex::Amount::ZERO;
 
                 for _ in 0..outputs {
-                    xmr_outputs.push(xmr);
-                    sum_xmr = sum_xmr + xmr;
+                    bdx_outputs.push(bdx);
+                    sum_bdx = sum_bdx + bdx;
                 }
 
                 Self {
-                    xmr: sum_xmr,
-                    xmr_outputs,
+                    bdx: sum_bdx,
+                    bdx_outputs,
                     btc,
                 }
             }
@@ -405,7 +405,7 @@ pub struct BobParams {
     seed: Seed,
     db_path: PathBuf,
     bitcoin_wallet: Arc<bitcoin::Wallet>,
-    monero_wallet: Arc<monero::Wallet>,
+    beldex_wallet: Arc<beldex::Wallet>,
     alice_address: Multiaddr,
     alice_peer_id: PeerId,
     env_config: Config,
@@ -420,10 +420,10 @@ impl BobParams {
         )
     }
 
-    pub async fn get_change_receive_addresses(&self) -> (bitcoin::Address, monero::Address) {
+    pub async fn get_change_receive_addresses(&self) -> (bitcoin::Address, beldex::Address) {
         (
             self.bitcoin_wallet.new_address().await.unwrap(),
-            self.monero_wallet.get_main_address(),
+            self.beldex_wallet.get_main_address(),
         )
     }
 
@@ -442,10 +442,10 @@ impl BobParams {
             db.clone(),
             swap_id,
             self.bitcoin_wallet.clone(),
-            self.monero_wallet.clone(),
+            self.beldex_wallet.clone(),
             self.env_config,
             handle,
-            self.monero_wallet.get_main_address(),
+            self.beldex_wallet.get_main_address(),
         )
         .await?;
 
@@ -474,10 +474,10 @@ impl BobParams {
             db,
             swap_id,
             self.bitcoin_wallet.clone(),
-            self.monero_wallet.clone(),
+            self.beldex_wallet.clone(),
             self.env_config,
             handle,
-            self.monero_wallet.get_main_address(),
+            self.beldex_wallet.get_main_address(),
             self.bitcoin_wallet.new_address().await?,
             btc_amount,
         );
@@ -498,7 +498,7 @@ impl BobParams {
             self.alice_peer_id,
             self.env_config,
             self.bitcoin_wallet.clone(),
-            (identity.clone(), XmrBtcNamespace::Testnet),
+            (identity.clone(), BeldexBtcNamespace::Testnet),
         );
         let mut swarm = swarm::cli(identity.clone(), tor_socks5_port, behaviour).await?;
         swarm
@@ -532,7 +532,7 @@ pub struct TestContext {
     env_config: Config,
 
     btc_amount: bitcoin::Amount,
-    xmr_amount: monero::Amount,
+    bdx_amount: beldex::Amount,
 
     alice_seed: Seed,
     alice_db_path: PathBuf,
@@ -540,14 +540,14 @@ pub struct TestContext {
 
     alice_starting_balances: StartingBalances,
     alice_bitcoin_wallet: Arc<bitcoin::Wallet>,
-    alice_monero_wallet: Arc<monero::Wallet>,
+    alice_beldex_wallet: Arc<beldex::Wallet>,
     alice_swap_handle: mpsc::Receiver<Swap>,
     alice_handle: AliceApplicationHandle,
 
     pub bob_params: BobParams,
     bob_starting_balances: StartingBalances,
     bob_bitcoin_wallet: Arc<bitcoin::Wallet>,
-    bob_monero_wallet: Arc<monero::Wallet>,
+    bob_beldex_wallet: Arc<beldex::Wallet>,
 }
 
 impl TestContext {
@@ -557,7 +557,7 @@ impl TestContext {
             self.env_config,
             self.bob_params.db_path,
             self.bob_bitcoin_wallet,
-            self.bob_monero_wallet,
+            self.bob_beldex_wallet,
         )
         .await
     }
@@ -571,7 +571,7 @@ impl TestContext {
             self.alice_listen_address.clone(),
             self.env_config,
             self.alice_bitcoin_wallet.clone(),
-            self.alice_monero_wallet.clone(),
+            self.alice_beldex_wallet.clone(),
         )
         .await;
 
@@ -623,16 +623,16 @@ impl TestContext {
         .unwrap();
 
         assert_eventual_balance(
-            self.alice_monero_wallet.as_ref(),
+            self.alice_beldex_wallet.as_ref(),
             Ordering::Less,
-            self.alice_redeemed_xmr_balance(),
+            self.alice_redeemed_bdx_balance(),
         )
         .await
         .unwrap();
     }
 
     pub async fn assert_alice_refunded(&mut self, state: AliceState) {
-        assert!(matches!(state, AliceState::XmrRefunded));
+        assert!(matches!(state, AliceState::BeldexRefunded));
 
         assert_eventual_balance(
             self.alice_bitcoin_wallet.as_ref(),
@@ -644,9 +644,9 @@ impl TestContext {
 
         // Alice pays fees - comparison does not take exact lock fee into account
         assert_eventual_balance(
-            self.alice_monero_wallet.as_ref(),
+            self.alice_beldex_wallet.as_ref(),
             Ordering::Greater,
-            self.alice_refunded_xmr_balance(),
+            self.alice_refunded_bdx_balance(),
         )
         .await
         .unwrap();
@@ -664,9 +664,9 @@ impl TestContext {
         .unwrap();
 
         assert_eventual_balance(
-            self.alice_monero_wallet.as_ref(),
+            self.alice_beldex_wallet.as_ref(),
             Ordering::Less,
-            self.alice_punished_xmr_balance(),
+            self.alice_punished_bdx_balance(),
         )
         .await
         .unwrap();
@@ -682,12 +682,12 @@ impl TestContext {
         .unwrap();
 
         // unload the generated wallet by opening the original wallet
-        self.bob_monero_wallet.re_open().await.unwrap();
+        self.bob_beldex_wallet.re_open().await.unwrap();
 
         assert_eventual_balance(
-            self.bob_monero_wallet.as_ref(),
+            self.bob_beldex_wallet.as_ref(),
             Ordering::Greater,
-            self.bob_redeemed_xmr_balance(),
+            self.bob_redeemed_bdx_balance(),
         )
         .await
         .unwrap();
@@ -726,9 +726,9 @@ impl TestContext {
         assert!(bob_cancelled_and_refunded);
 
         assert_eventual_balance(
-            self.bob_monero_wallet.as_ref(),
+            self.bob_beldex_wallet.as_ref(),
             Ordering::Equal,
-            self.bob_refunded_xmr_balance(),
+            self.bob_refunded_bdx_balance(),
         )
         .await
         .unwrap();
@@ -744,16 +744,16 @@ impl TestContext {
         .unwrap();
 
         assert_eventual_balance(
-            self.bob_monero_wallet.as_ref(),
+            self.bob_beldex_wallet.as_ref(),
             Ordering::Equal,
-            self.bob_punished_xmr_balance(),
+            self.bob_punished_bdx_balance(),
         )
         .await
         .unwrap();
     }
 
-    fn alice_redeemed_xmr_balance(&self) -> monero::Amount {
-        self.alice_starting_balances.xmr - self.xmr_amount
+    fn alice_redeemed_bdx_balance(&self) -> beldex::Amount {
+        self.alice_starting_balances.bdx - self.bdx_amount
     }
 
     async fn alice_redeemed_btc_balance(&self) -> bitcoin::Amount {
@@ -765,17 +765,17 @@ impl TestContext {
         self.alice_starting_balances.btc + self.btc_amount - fee
     }
 
-    fn bob_redeemed_xmr_balance(&self) -> monero::Amount {
-        self.bob_starting_balances.xmr
+    fn bob_redeemed_bdx_balance(&self) -> beldex::Amount {
+        self.bob_starting_balances.bdx
     }
 
     async fn bob_redeemed_btc_balance(&self, state: BobState) -> Result<bitcoin::Amount> {
         self.bob_bitcoin_wallet.sync().await?;
 
-        let lock_tx_id = if let BobState::XmrRedeemed { tx_lock_id } = state {
+        let lock_tx_id = if let BobState::BeldexRedeemed { tx_lock_id } = state {
             tx_lock_id
         } else {
-            bail!("Bob in not in xmr redeemed state: {:?}", state);
+            bail!("Bob in not in bdx redeemed state: {:?}", state);
         };
 
         let lock_tx_bitcoin_fee = self.bob_bitcoin_wallet.transaction_fee(lock_tx_id).await?;
@@ -783,20 +783,20 @@ impl TestContext {
         Ok(self.bob_starting_balances.btc - self.btc_amount - lock_tx_bitcoin_fee)
     }
 
-    fn alice_refunded_xmr_balance(&self) -> monero::Amount {
-        self.alice_starting_balances.xmr - self.xmr_amount
+    fn alice_refunded_bdx_balance(&self) -> beldex::Amount {
+        self.alice_starting_balances.bdx - self.bdx_amount
     }
 
     fn alice_refunded_btc_balance(&self) -> bitcoin::Amount {
         self.alice_starting_balances.btc
     }
 
-    fn bob_refunded_xmr_balance(&self) -> monero::Amount {
-        self.bob_starting_balances.xmr
+    fn bob_refunded_bdx_balance(&self) -> beldex::Amount {
+        self.bob_starting_balances.bdx
     }
 
-    fn alice_punished_xmr_balance(&self) -> monero::Amount {
-        self.alice_starting_balances.xmr - self.xmr_amount
+    fn alice_punished_bdx_balance(&self) -> beldex::Amount {
+        self.alice_starting_balances.bdx - self.bdx_amount
     }
 
     async fn alice_punished_btc_balance(&self) -> bitcoin::Amount {
@@ -813,8 +813,8 @@ impl TestContext {
         self.alice_starting_balances.btc + self.btc_amount - cancel_fee - punish_fee
     }
 
-    fn bob_punished_xmr_balance(&self) -> monero::Amount {
-        self.bob_starting_balances.xmr
+    fn bob_punished_bdx_balance(&self) -> beldex::Amount {
+        self.bob_starting_balances.bdx
     }
 
     async fn bob_punished_btc_balance(&self, state: BobState) -> Result<bitcoin::Amount> {
@@ -889,8 +889,8 @@ trait Wallet {
 }
 
 #[async_trait]
-impl Wallet for monero::Wallet {
-    type Amount = monero::Amount;
+impl Wallet for beldex::Wallet {
+    type Amount = beldex::Amount;
 
     async fn refresh(&self) -> Result<()> {
         self.refresh(1).await?;
@@ -900,7 +900,7 @@ impl Wallet for monero::Wallet {
 
     async fn get_balance(&self) -> Result<Self::Amount> {
         let total = self.get_balance().await?;
-        let balance = Self::Amount::from_piconero(total.balance);
+        let balance = Self::Amount::from_atomic(total.balance);
         Ok(balance)
     }
 }
@@ -983,16 +983,16 @@ pub async fn mint(node_url: Url, address: bitcoin::Address, amount: bitcoin::Amo
 struct Containers<'a> {
     bitcoind_url: Url,
     _bitcoind: Container<'a, bitcoind::Bitcoind>,
-    _monerod_container: Container<'a, image::Monerod>,
-    _monero_wallet_rpc_containers: Vec<Container<'a, image::MoneroWalletRpc>>,
+    _beldexd_container: Container<'a, image::Beldexd>,
+    _beldex_wallet_rpc_containers: Vec<Container<'a, image::BeldexWalletRpc>>,
     electrs: Container<'a, electrs::Electrs>,
 }
 
 pub mod alice_run_until {
     use swap::protocol::alice::AliceState;
 
-    pub fn is_xmr_lock_transaction_sent(state: &AliceState) -> bool {
-        matches!(state, AliceState::XmrLockTransactionSent { .. })
+    pub fn is_bdx_lock_transaction_sent(state: &AliceState) -> bool {
+        matches!(state, AliceState::BeldexLockTransactionSent { .. })
     }
 
     pub fn is_encsig_learned(state: &AliceState) -> bool {
@@ -1012,11 +1012,11 @@ pub mod bob_run_until {
     }
 
     pub fn is_lock_proof_received(state: &BobState) -> bool {
-        matches!(state, BobState::XmrLockProofReceived { .. })
+        matches!(state, BobState::BeldexLockProofReceived { .. })
     }
 
-    pub fn is_xmr_locked(state: &BobState) -> bool {
-        matches!(state, BobState::XmrLocked(..))
+    pub fn is_bdx_locked(state: &BobState) -> bool {
+        matches!(state, BobState::BeldexLocked(..))
     }
 
     pub fn is_encsig_sent(state: &BobState) -> bool {

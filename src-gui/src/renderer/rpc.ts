@@ -3,10 +3,10 @@ import { listen } from "@tauri-apps/api/event";
 import {
   BalanceArgs,
   BalanceResponse,
-  BuyXmrArgs,
-  BuyXmrResponse,
+  BuyBeldexArgs,
+  BuyBeldexResponse,
   GetSwapInfoResponse,
-  MoneroRecoveryArgs,
+  BeldexRecoveryArgs,
   ResumeSwapArgs,
   ResumeSwapResponse,
   SuspendCurrentSwapResponse,
@@ -24,7 +24,7 @@ import { swapTauriEventReceived } from "store/features/swapSlice";
 import { store } from "./store/storeRenderer";
 import { Provider } from "models/apiModel";
 import { providerToConcatenatedMultiAddr } from "utils/multiAddrUtils";
-import { MoneroRecoveryResponse } from "models/rpcModel";
+import { BeldexRecoveryResponse } from "models/rpcModel";
 
 export async function initEventListeners() {
   // This operation is in-expensive
@@ -87,15 +87,15 @@ export async function withdrawBtc(address: string): Promise<string> {
   return response.txid;
 }
 
-export async function buyXmr(
+export async function buyBeldex(
   seller: Provider,
   bitcoin_change_address: string,
-  monero_receive_address: string,
+  beldex_receive_address: string,
 ) {
-  await invoke<BuyXmrArgs, BuyXmrResponse>("buy_xmr", {
+  await invoke<BuyBeldexArgs, BuyBeldexResponse>("buy_bdx", {
     seller: providerToConcatenatedMultiAddr(seller),
     bitcoin_change_address,
-    monero_receive_address,
+    beldex_receive_address,
   });
 }
 
@@ -109,11 +109,11 @@ export async function suspendCurrentSwap() {
   await invokeNoArgs<SuspendCurrentSwapResponse>("suspend_current_swap");
 }
 
-export async function getMoneroRecoveryKeys(
+export async function getBeldexRecoveryKeys(
   swapId: string,
-): Promise<MoneroRecoveryResponse> {
-  return await invoke<MoneroRecoveryArgs, MoneroRecoveryResponse>(
-    "monero_recovery",
+): Promise<BeldexRecoveryResponse> {
+  return await invoke<BeldexRecoveryArgs, BeldexRecoveryResponse>(
+    "beldex_recovery",
     {
       swap_id: swapId,
     },

@@ -88,7 +88,7 @@
         "Right": 2
       }
     },
-    "query": "\n        insert into monero_addresses (\n            swap_id,\n            address\n            ) values (?, ?);\n        "
+    "query": "\n        insert into beldex_addresses (\n            swap_id,\n            address\n            ) values (?, ?);\n        "
   },
   "88f761a4f7a0429cad1df0b1bebb1c0a27b2a45656549b23076d7542cfa21ecf": {
     "describe": {
@@ -134,7 +134,7 @@
         "Right": 1
       }
     },
-    "query": "\n        SELECT address\n        FROM monero_addresses\n        WHERE swap_id = ?\n        "
+    "query": "\n        SELECT address\n        FROM beldex_addresses\n        WHERE swap_id = ?\n        "
   },
   "d78acba5eb8563826dd190e0886aa665aae3c6f1e312ee444e65df1c95afe8b2": {
     "describe": {

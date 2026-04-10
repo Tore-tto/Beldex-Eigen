@@ -9,7 +9,7 @@ use libp2p::PeerId;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-const PROTOCOL: &str = "/comit/xmr/btc/encrypted_signature/1.0.0";
+const PROTOCOL: &str = "/comit/bdx/btc/encrypted_signature/1.0.0";
 type OutEvent = RequestResponseEvent<Request, ()>;
 type Message = RequestResponseMessage<Request, ()>;
 

@@ -7,7 +7,7 @@ use swap::asb::{Finality, FixedRate};
 use swap::protocol::alice::AliceState;
 use swap::protocol::{alice, bob};
 
-/// Bob locks Btc and Alice locks Xmr. Alice redeems using manual redeem command
+/// Bob locks Btc and Alice locks Beldex. Alice redeems using manual redeem command
 /// after learning encsig from Bob
 #[tokio::test]
 async fn alice_manually_redeems_after_enc_sig_learned() {

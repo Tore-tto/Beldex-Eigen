@@ -9,7 +9,7 @@ use tokio::{
 };
 use uuid::Uuid;
 
-const LATEST_RELEASE_URL: &str = "https://github.com/comit-network/xmr-btc-swap/releases/latest";
+const LATEST_RELEASE_URL: &str = "https://github.com/comit-network/bdx-btc-swap/releases/latest";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Version {
@@ -132,7 +132,7 @@ pub async fn get_logs(
     Ok(log_messages)
 }
 
-/// Redact logs, etc. by replacing Bitcoin and Monero addresses
+/// Redact logs, etc. by replacing Bitcoin and Beldex addresses
 /// with generic placeholders.
 ///
 /// # Example
@@ -151,9 +151,9 @@ pub fn redact(input: &str) -> String {
 /// in a specified hashmap.
 pub fn redact_with(input: &str, replacements: &mut HashMap<String, String>) -> String {
     // TODO: verify regex patterns
-    const MONERO_ADDR_REGEX: &str = r#"[48][1-9A-HJ-NP-Za-km-z]{94}"#;
+    const BELDEX_ADDR_REGEX: &str = r#"[48][1-9A-HJ-NP-Za-km-z]{94}"#;
     const BITCOIN_ADDR_REGEX: &str = r#"\b[13][a-km-zA-HJ-NP-Z1-9]{25,34}\b"#;
-    // Both XMR and BTC transactions have
+    // Both BDX and BTC transactions have
     // a 64 bit hex id so they aren't distinguishible
     const TX_ID_REGEX: &str = r#"\b[a-fA-F0-9]{64}\b"#;
     const SWAP_ID_REGEX: &str =
@@ -162,8 +162,8 @@ pub fn redact_with(input: &str, replacements: &mut HashMap<String, String>) -> S
     // use the macro to find all addresses and generate placeholders
     // has to be a macro in order to create the regex automata only once.
     regex_find_placeholders!(
-        MONERO_ADDR_REGEX,
-        |count| format!("<monero_address_{count}>"),
+        BELDEX_ADDR_REGEX,
+        |count| format!("<beldex_address_{count}>"),
         replacements,
         input
     );

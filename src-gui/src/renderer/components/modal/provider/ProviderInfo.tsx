@@ -2,7 +2,7 @@ import { Box, Chip, makeStyles, Tooltip, Typography } from "@material-ui/core";
 import { VerifiedUser } from "@material-ui/icons";
 import { ExtendedProviderStatus } from "models/apiModel";
 import {
-  MoneroBitcoinExchangeRate,
+  BeldexBitcoinExchangeRate,
   SatsAmount,
 } from "renderer/components/other/Units";
 import { satsToBtc, secondsToDays } from "utils/conversionUtils";
@@ -42,7 +42,7 @@ export default function ProviderInfo({
       </Typography>
       <Typography variant="caption">
         Exchange rate:{" "}
-        <MoneroBitcoinExchangeRate rate={satsToBtc(provider.price)} />
+        <BeldexBitcoinExchangeRate rate={satsToBtc(provider.price)} />
         <br />
         Minimum swap amount: <SatsAmount amount={provider.minSwapAmount} />
         <br />

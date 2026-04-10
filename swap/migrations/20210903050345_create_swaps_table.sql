@@ -6,7 +6,7 @@ CREATE TABLE if NOT EXISTS swap_states
     state       TEXT                NOT NULL
 );
 
-CREATE TABLE if NOT EXISTS monero_addresses
+CREATE TABLE if NOT EXISTS beldex_addresses
 (
     swap_id     TEXT    PRIMARY KEY NOT NULL,
     address     TEXT                NOT NULL

@@ -1,0 +1,60 @@
+    Checking beldex-rpc v0.1.0 (/home/vs041/beldex-project/eigen_wallet/atomic_swap/gui-preview/beldex-rpc)
+   Compiling unstoppableswap-gui-rs v0.0.0 (/home/vs041/beldex-project/eigen_wallet/atomic_swap/gui-preview/src-tauri)
+    Checking swap v0.13.2 (/home/vs041/beldex-project/eigen_wallet/atomic_swap/gui-preview/swap)
+    Checking beldex-wallet v0.1.0 (/home/vs041/beldex-project/eigen_wallet/atomic_swap/gui-preview/beldex-wallet)
+    Checking beldex-harness v0.1.0 (/home/vs041/beldex-project/eigen_wallet/atomic_swap/gui-preview/beldex-harness)
+error: failed to find data for query 
+               insert into beldex_addresses (
+                   swap_id,
+                   address
+                   ) values (?, ?);
+               
+   --> swap/src/database/sqlite.rs:93:9
+    |
+93  | /         sqlx::query!(
+94  | |             r#"
+95  | |         insert into beldex_addresses (
+96  | |             swap_id,
+...   |
+101 | |             address
+102 | |         )
+    | |_________^
+    |
+    = note: this error originates in the macro `$crate::sqlx_macros::expand_query` which comes from the expansion of the macro `sqlx::query` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: failed to find data for query 
+               SELECT address
+               FROM beldex_addresses
+               WHERE swap_id = ?
+               
+   --> swap/src/database/sqlite.rs:114:19
+    |
+114 |           let row = sqlx::query!(
+    |  ___________________^
+115 | |             r#"
+116 | |         SELECT address
+117 | |         FROM beldex_addresses
+...   |
+120 | |             swap_id
+121 | |         )
+    | |_________^
+    |
+    = note: this error originates in the macro `$crate::sqlx_macros::expand_query` which comes from the expansion of the macro `sqlx::query` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0425]: cannot find value `MONERO_FEE` in module `beldex`
+  --> swap/src/network/swap_setup/alice.rs:82:31
+   |
+82 |             lock_fee: beldex::MONERO_FEE,
+   |                               ^^^^^^^^^^ not found in `beldex`
+
+warning: unused import: `beldexd`
+ --> swap/src/beldex/wallet.rs:8:18
+  |
+8 | use beldex_rpc::{beldexd, jsonrpc, wallet};
+  |                  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+For more information about this error, try `rustc --explain E0425`.
+warning: `swap` (lib) generated 1 warning
+error: could not compile `swap` (lib) due to 3 previous errors; 1 warning emitted

@@ -1,5 +1,5 @@
 use crate::bitcoin::{self};
-use crate::monero;
+use crate::beldex;
 use crate::protocol::alice::AliceState;
 use crate::protocol::Database;
 use anyhow::{bail, Result};
@@ -17,8 +17,8 @@ pub enum Error {
 
     // Errors indicating that the swap cannot be refunded because because it is in a abort/final
     // state
-    #[error("Swap is in state {0} where no XMR was locked. Try aborting instead.")]
-    NoXmrLocked(AliceState),
+    #[error("Swap is in state {0} where no BDX was locked. Try aborting instead.")]
+    NoBeldexLocked(AliceState),
     #[error("Swap is in state {0} which is not refundable")]
     SwapNotRefundable(AliceState),
 }
@@ -26,35 +26,35 @@ pub enum Error {
 pub async fn refund(
     swap_id: Uuid,
     bitcoin_wallet: Arc<bitcoin::Wallet>,
-    monero_wallet: Arc<monero::Wallet>,
+    beldex_wallet: Arc<beldex::Wallet>,
     db: Arc<dyn Database>,
 ) -> Result<AliceState> {
     let state = db.get_state(swap_id).await?.try_into()?;
 
-    let (monero_wallet_restore_blockheight, transfer_proof, state3) = match state {
-        // In case no XMR has been locked, move to Safely Aborted
+    let (beldex_wallet_restore_blockheight, transfer_proof, state3) = match state {
+        // In case no BDX has been locked, move to Safely Aborted
         AliceState::Started { .. }
         | AliceState::BtcLockTransactionSeen { .. }
-        | AliceState::BtcLocked { .. } => bail!(Error::NoXmrLocked(state)),
+        | AliceState::BtcLocked { .. } => bail!(Error::NoBeldexLocked(state)),
 
         // Refund potentially possible (no knowledge of cancel transaction)
-        AliceState::XmrLockTransactionSent { monero_wallet_restore_blockheight, transfer_proof, state3, }
-        | AliceState::XmrLocked { monero_wallet_restore_blockheight, transfer_proof, state3 }
-        | AliceState::XmrLockTransferProofSent { monero_wallet_restore_blockheight, transfer_proof, state3 }
-        | AliceState::EncSigLearned { monero_wallet_restore_blockheight, transfer_proof, state3, .. }
-        | AliceState::CancelTimelockExpired { monero_wallet_restore_blockheight, transfer_proof, state3 }
+        AliceState::BeldexLockTransactionSent { beldex_wallet_restore_blockheight, transfer_proof, state3, }
+        | AliceState::BeldexLocked { beldex_wallet_restore_blockheight, transfer_proof, state3 }
+        | AliceState::BeldexLockTransferProofSent { beldex_wallet_restore_blockheight, transfer_proof, state3 }
+        | AliceState::EncSigLearned { beldex_wallet_restore_blockheight, transfer_proof, state3, .. }
+        | AliceState::CancelTimelockExpired { beldex_wallet_restore_blockheight, transfer_proof, state3 }
 
         // Refund possible due to cancel transaction already being published
-        | AliceState::BtcCancelled { monero_wallet_restore_blockheight, transfer_proof, state3 }
-        | AliceState::BtcRefunded { monero_wallet_restore_blockheight, transfer_proof, state3, .. }
-        | AliceState::BtcPunishable { monero_wallet_restore_blockheight, transfer_proof, state3, .. } => {
-            (monero_wallet_restore_blockheight, transfer_proof, state3)
+        | AliceState::BtcCancelled { beldex_wallet_restore_blockheight, transfer_proof, state3 }
+        | AliceState::BtcRefunded { beldex_wallet_restore_blockheight, transfer_proof, state3, .. }
+        | AliceState::BtcPunishable { beldex_wallet_restore_blockheight, transfer_proof, state3, .. } => {
+            (beldex_wallet_restore_blockheight, transfer_proof, state3)
         }
 
         // Alice already in final state
         AliceState::BtcRedeemTransactionPublished { .. }
         | AliceState::BtcRedeemed
-        | AliceState::XmrRefunded
+        | AliceState::BeldexRefunded
         | AliceState::BtcPunished { .. }
         | AliceState::SafelyAborted => bail!(Error::SwapNotRefundable(state)),
     };
@@ -64,24 +64,24 @@ pub async fn refund(
     let spend_key = if let Ok(published_refund_tx) =
         state3.fetch_tx_refund(bitcoin_wallet.as_ref()).await
     {
-        tracing::debug!(%swap_id, "Bitcoin refund transaction found, extracting key to refund Monero");
-        state3.extract_monero_private_key(published_refund_tx)?
+        tracing::debug!(%swap_id, "Bitcoin refund transaction found, extracting key to refund Beldex");
+        state3.extract_beldex_private_key(published_refund_tx)?
     } else {
         let bob_peer_id = db.get_peer_id(swap_id).await?;
         bail!(Error::RefundTransactionNotPublishedYet(bob_peer_id),);
     };
 
     state3
-        .refund_xmr(
-            &monero_wallet,
-            monero_wallet_restore_blockheight,
+        .refund_bdx(
+            &beldex_wallet,
+            beldex_wallet_restore_blockheight,
             swap_id.to_string(),
             spend_key,
             transfer_proof,
         )
         .await?;
 
-    let state = AliceState::XmrRefunded;
+    let state = AliceState::BeldexRefunded;
     db.insert_latest_state(swap_id, state.clone().into())
         .await?;
 

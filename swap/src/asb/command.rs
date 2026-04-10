@@ -231,7 +231,7 @@ pub enum Command {
 #[derive(structopt::StructOpt, Debug)]
 #[structopt(
     name = "asb",
-    about = "Automated Swap Backend for swapping XMR for BTC",
+    about = "Automated Swap Backend for swapping BDX for BTC",
     author,
     version = env!("VERGEN_GIT_DESCRIBE")
 )]
@@ -265,7 +265,7 @@ pub struct RawArguments {
 }
 
 #[derive(structopt::StructOpt, Debug)]
-#[structopt(name = "xmr_btc-swap", about = "XMR BTC atomic swap")]
+#[structopt(name = "bdx_btc-swap", about = "BDX BTC atomic swap")]
 pub enum RawCommand {
     #[structopt(about = "Main command to run the ASB.")]
     Start {
@@ -283,7 +283,7 @@ pub enum RawCommand {
         )]
         logs_dir: Option<PathBuf>,
         #[structopt(
-            help = "Redact swap-ids, Bitcoin and Monero addresses.",
+            help = "Redact swap-ids, Bitcoin and Beldex addresses.",
             long = "redact"
         )]
         redact: bool,
@@ -309,7 +309,7 @@ pub enum RawCommand {
         address: Address,
     },
     #[structopt(
-        about = "Prints the Bitcoin and Monero balance. Requires the monero-wallet-rpc to be running."
+        about = "Prints the Bitcoin and Beldex balance. Requires the beldex-wallet-rpc to be running."
     )]
     Balance,
     #[structopt(about = "Print the internal bitcoin wallet descriptor.")]
@@ -341,7 +341,7 @@ pub enum ManualRecovery {
         cancel_params: RecoverCommandParams,
     },
     #[structopt(
-        about = "Publishes the Monero refund transaction. By default, a swap-state where the cancel transaction was already published will be enforced. This command requires the counterparty Bitcoin refund transaction and will error if it was not published yet. "
+        about = "Publishes the Beldex refund transaction. By default, a swap-state where the cancel transaction was already published will be enforced. This command requires the counterparty Bitcoin refund transaction and will error if it was not published yet. "
     )]
     Refund {
         #[structopt(flatten)]
@@ -354,7 +354,7 @@ pub enum ManualRecovery {
         #[structopt(flatten)]
         punish_params: RecoverCommandParams,
     },
-    #[structopt(about = "Safely Abort requires the swap to be in a state prior to locking XMR.")]
+    #[structopt(about = "Safely Abort requires the swap to be in a state prior to locking BDX.")]
     SafelyAbort {
         #[structopt(
             long = "swap-id",

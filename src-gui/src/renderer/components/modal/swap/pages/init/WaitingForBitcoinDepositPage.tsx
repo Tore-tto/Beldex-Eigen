@@ -2,7 +2,7 @@ import { Box, makeStyles, Typography } from "@material-ui/core";
 import { TauriSwapProgressEventContent } from "models/tauriModelExt";
 import { useAppSelector } from "store/hooks";
 import BitcoinIcon from "../../../../icons/BitcoinIcon";
-import { MoneroSatsExchangeRate, SatsAmount } from "../../../../other/Units";
+import { BeldexSatsExchangeRate, SatsAmount } from "../../../../other/Units";
 import DepositAddressInfoBox from "../../DepositAddressInfoBox";
 import DepositAmountHelper from "./DepositAmountHelper";
 
@@ -58,8 +58,8 @@ export default function WaitingForBtcDepositPage({
                 </li>
                 <li>
                   All Bitcoin sent to this this address will converted into
-                  Monero at an exchance rate of{" "}
-                  <MoneroSatsExchangeRate rate={quote.price} />
+                  Beldex at an exchance rate of{" "}
+                  <BeldexSatsExchangeRate rate={quote.price} />
                 </li>
                 <li>
                   The network fee of{" "}

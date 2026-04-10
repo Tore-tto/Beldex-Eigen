@@ -1,5 +1,5 @@
 use crate::database::Swap;
-use crate::monero::{Address, TransferProof};
+use crate::beldex::{Address, TransferProof};
 use crate::protocol::{Database, State};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
@@ -84,45 +84,45 @@ impl Database for SqliteDatabase {
         Ok(peer_id)
     }
 
-    async fn insert_monero_address(&self, swap_id: Uuid, address: Address) -> Result<()> {
+    async fn insert_beldex_address(&self, swap_id: Uuid, address: Address) -> Result<()> {
         let mut conn = self.pool.acquire().await?;
 
         let swap_id = swap_id.to_string();
         let address = address.to_string();
 
-        sqlx::query!(
+        sqlx::query(
             r#"
-        insert into monero_addresses (
+        insert into beldex_addresses (
             swap_id,
             address
             ) values (?, ?);
         "#,
-            swap_id,
-            address
         )
+        .bind(swap_id)
+        .bind(address)
         .execute(&mut conn)
         .await?;
 
         Ok(())
     }
 
-    async fn get_monero_address(&self, swap_id: Uuid) -> Result<Address> {
+    async fn get_beldex_address(&self, swap_id: Uuid) -> Result<Address> {
         let mut conn = self.pool.acquire().await?;
 
         let swap_id = swap_id.to_string();
 
-        let row = sqlx::query!(
+        let row: (String,) = sqlx::query_as(
             r#"
         SELECT address
-        FROM monero_addresses
+        FROM beldex_addresses
         WHERE swap_id = ?
         "#,
-            swap_id
         )
+        .bind(swap_id)
         .fetch_one(&mut conn)
         .await?;
 
-        let address = row.address.parse()?;
+        let address = row.0.parse()?;
 
         Ok(address)
     }
@@ -419,17 +419,17 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_insert_load_monero_address() -> Result<()> {
+    async fn test_insert_load_beldex_address() -> Result<()> {
         let db = setup_test_db().await?;
 
         let swap_id = Uuid::new_v4();
-        let monero_address = "53gEuGZUhP9JMEBZoGaFNzhwEgiG7hwQdMCqFxiyiTeFPmkbt1mAoNybEUvYBKHcnrSgxnVWgZsTvRBaHBNXPa8tHiCU51a".parse()?;
+        let beldex_address = "53gEuGZUhP9JMEBZoGaFNzhwEgiG7hwQdMCqFxiyiTeFPmkbt1mAoNybEUvYBKHcnrSgxnVWgZsTvRBaHBNXPa8tHiCU51a".parse()?;
 
-        db.insert_monero_address(swap_id, monero_address).await?;
+        db.insert_beldex_address(swap_id, beldex_address).await?;
 
-        let loaded_monero_address = db.get_monero_address(swap_id).await?;
+        let loaded_beldex_address = db.get_beldex_address(swap_id).await?;
 
-        assert_eq!(monero_address, loaded_monero_address);
+        assert_eq!(beldex_address, loaded_beldex_address);
 
         Ok(())
     }

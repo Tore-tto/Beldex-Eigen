@@ -1,12 +1,12 @@
 use crate::asb::LatestRate;
-use crate::monero::Amount;
+use crate::beldex::Amount;
 use crate::network::swap_setup;
 use crate::network::swap_setup::{
     protocol, BlockchainNetwork, SpotPriceError, SpotPriceRequest, SpotPriceResponse,
 };
 use crate::protocol::alice::{State0, State3};
 use crate::protocol::{Message0, Message2, Message4};
-use crate::{asb, bitcoin, env, monero};
+use crate::{asb, bitcoin, env, beldex};
 use anyhow::{anyhow, Context, Result};
 use futures::future::{BoxFuture, OptionFuture};
 use futures::{AsyncWriteExt, FutureExt};
@@ -43,8 +43,8 @@ pub enum OutEvent {
 
 #[derive(Debug)]
 pub struct WalletSnapshot {
-    balance: monero_rpc::wallet::GetBalance,
-    lock_fee: monero::Amount,
+    balance: beldex_rpc::wallet::GetBalance,
+    lock_fee: beldex::Amount,
 
     // TODO: Consider using the same address for punish and redeem (they are mutually exclusive, so
     // effectively the address will only be used once)
@@ -58,11 +58,11 @@ pub struct WalletSnapshot {
 impl WalletSnapshot {
     pub async fn capture(
         bitcoin_wallet: &bitcoin::Wallet,
-        monero_wallet: &monero::Wallet,
+        beldex_wallet: &beldex::Wallet,
         external_redeem_address: &Option<bitcoin::Address>,
         transfer_amount: bitcoin::Amount,
     ) -> Result<Self> {
-        let balance = monero_wallet.get_balance().await?;
+        let balance = beldex_wallet.get_balance().await?;
         let redeem_address = external_redeem_address
             .clone()
             .unwrap_or(bitcoin_wallet.new_address().await?);
@@ -79,7 +79,7 @@ impl WalletSnapshot {
 
         Ok(Self {
             balance,
-            lock_fee: monero::MONERO_FEE,
+            lock_fee: beldex::BELDEX_FEE,
             redeem_address,
             punish_address,
             redeem_fee,
@@ -299,7 +299,7 @@ where
 
                 let blockchain_network = BlockchainNetwork {
                     bitcoin: env_config.bitcoin_network,
-                    monero: env_config.monero_network,
+                    beldex: env_config.beldex_network,
                 };
 
                 if request.blockchain_network != blockchain_network {
@@ -326,19 +326,19 @@ where
                 }
 
                 let rate = latest_rate.map_err(|e| Error::LatestRateFetchFailed(Box::new(e)))?;
-                let xmr = rate
+                let bdx = rate
                     .sell_quote(btc)
                     .map_err(Error::SellQuoteCalculationFailed)?;
 
-                let unlocked = Amount::from_piconero(wallet_snapshot.balance.unlocked_balance);
-                if unlocked < xmr + wallet_snapshot.lock_fee {
+                let unlocked = Amount::from_atomic(wallet_snapshot.balance.unlocked_balance);
+                if unlocked < bdx + wallet_snapshot.lock_fee {
                     return Err(Error::BalanceTooLow {
                         balance: wallet_snapshot.balance,
                         buy: btc,
                     });
                 }
 
-                Ok(xmr)
+                Ok(bdx)
             };
 
             let result = validate.await;
@@ -350,11 +350,11 @@ where
             .await
             .context("Failed to write spot price response")?;
 
-            let xmr = result?;
+            let bdx = result?;
 
             let state0 = State0::new(
                 request.btc,
-                xmr,
+                bdx,
                 env_config,
                 wallet_snapshot.redeem_address,
                 wallet_snapshot.punish_address,
@@ -465,9 +465,9 @@ where
 }
 
 impl SpotPriceResponse {
-    pub fn from_result_ref(result: &Result<monero::Amount, Error>) -> Self {
+    pub fn from_result_ref(result: &Result<beldex::Amount, Error>) -> Self {
         match result {
-            Ok(amount) => SpotPriceResponse::Xmr(*amount),
+            Ok(amount) => SpotPriceResponse::Beldex(*amount),
             Err(error) => SpotPriceResponse::Error(error.to_error_response()),
         }
     }
@@ -489,7 +489,7 @@ pub enum Error {
     },
     #[error("Unlocked balance ({balance}) too low to fulfill swapping {buy}")]
     BalanceTooLow {
-        balance: monero_rpc::wallet::GetBalance,
+        balance: beldex_rpc::wallet::GetBalance,
         buy: bitcoin::Amount,
     },
     #[error("Failed to fetch latest rate")]

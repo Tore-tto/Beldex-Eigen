@@ -15,7 +15,7 @@ export default function BitcoinLockTxInMempoolPage({
       <DialogContentText>
         The Bitcoin lock transaction has been published. The swap will proceed
         once the transaction is confirmed and the swap provider locks their
-        Monero.
+        Beldex.
       </DialogContentText>
       <BitcoinTransactionInfoBox
         title="Bitcoin Lock Transaction"
@@ -24,7 +24,7 @@ export default function BitcoinLockTxInMempoolPage({
         additionalContent={
           <>
             Most swap providers require one confirmation before locking their
-            Monero
+            Beldex
             <br />
             Confirmations: {btc_lock_confirmations}
           </>

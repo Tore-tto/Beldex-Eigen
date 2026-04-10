@@ -1,5 +1,5 @@
 use crate::network::cbor_request_response::CborCodec;
-use crate::{asb, cli, monero};
+use crate::{asb, cli, beldex};
 use libp2p::core::ProtocolName;
 use libp2p::request_response::{
     ProtocolSupport, RequestResponse, RequestResponseConfig, RequestResponseEvent,
@@ -9,7 +9,7 @@ use libp2p::PeerId;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-const PROTOCOL: &str = "/comit/xmr/btc/transfer_proof/1.0.0";
+const PROTOCOL: &str = "/comit/bdx/btc/transfer_proof/1.0.0";
 type OutEvent = RequestResponseEvent<Request, ()>;
 type Message = RequestResponseMessage<Request, ()>;
 
@@ -27,7 +27,7 @@ impl ProtocolName for TransferProofProtocol {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Request {
     pub swap_id: Uuid,
-    pub tx_lock_proof: monero::TransferProof,
+    pub tx_lock_proof: beldex::TransferProof,
 }
 
 pub fn alice() -> Behaviour {

@@ -3,7 +3,7 @@ import GitHubIcon from "@material-ui/icons/GitHub";
 import RedditIcon from "@material-ui/icons/Reddit";
 import DaemonStatusAlert from "../alert/DaemonStatusAlert";
 import FundsLeftInWalletAlert from "../alert/FundsLeftInWalletAlert";
-import MoneroWalletRpcUpdatingAlert from "../alert/MoneroWalletRpcUpdatingAlert";
+import BeldexWalletRpcUpdatingAlert from "../alert/BeldexWalletRpcUpdatingAlert";
 import UnfinishedSwapsAlert from "../alert/UnfinishedSwapsAlert";
 import DiscordIcon from "../icons/DiscordIcon";
 import LinkIconButton from "../icons/LinkIconButton";
@@ -30,7 +30,7 @@ export default function NavigationFooter() {
       <FundsLeftInWalletAlert />
       <UnfinishedSwapsAlert />
       <DaemonStatusAlert />
-      <MoneroWalletRpcUpdatingAlert />
+      <BeldexWalletRpcUpdatingAlert />
       <Box className={classes.linksOuter}>
         <LinkIconButton url="https://reddit.com/r/unstoppableswap">
           <RedditIcon />

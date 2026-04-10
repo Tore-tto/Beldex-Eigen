@@ -4,7 +4,7 @@ import {
   GetSwapInfoResponse,
   TauriContextStatusEvent,
 } from "models/tauriModel";
-import { MoneroRecoveryResponse } from "../../models/rpcModel";
+import { BeldexRecoveryResponse } from "../../models/rpcModel";
 import { GetSwapInfoResponseExt } from "models/tauriModelExt";
 
 interface State {
@@ -14,16 +14,16 @@ interface State {
   swapInfos: {
     [swapId: string]: GetSwapInfoResponseExt;
   };
-  moneroRecovery: {
+  beldexRecovery: {
     swapId: string;
-    keys: MoneroRecoveryResponse;
+    keys: BeldexRecoveryResponse;
   } | null;
-  moneroWallet: {
+  beldexWallet: {
     isSyncing: boolean;
   };
-  moneroWalletRpc: {
+  beldexWalletRpc: {
     // TODO: Reimplement this using Tauri
-    updateState: false;
+    updateState: false | { progress: string };
   };
 }
 
@@ -40,11 +40,11 @@ const initialState: RPCSlice = {
     withdrawTxId: null,
     rendezvous_discovered_sellers: [],
     swapInfos: {},
-    moneroRecovery: null,
-    moneroWallet: {
+    beldexRecovery: null,
+    beldexWallet: {
       isSyncing: false,
     },
-    moneroWalletRpc: {
+    beldexWalletRpc: {
       updateState: false,
     },
   },
@@ -91,20 +91,20 @@ export const rpcSlice = createSlice({
         slice.busyEndpoints.splice(index);
       }
     },
-    rpcSetMoneroRecoveryKeys(
+    rpcSetBeldexRecoveryKeys(
       slice,
-      action: PayloadAction<[string, MoneroRecoveryResponse]>,
+      action: PayloadAction<[string, BeldexRecoveryResponse]>,
     ) {
       const swapId = action.payload[0];
       const keys = action.payload[1];
 
-      slice.state.moneroRecovery = {
+      slice.state.beldexRecovery = {
         swapId,
         keys,
       };
     },
-    rpcResetMoneroRecoveryKeys(slice) {
-      slice.state.moneroRecovery = null;
+    rpcResetBeldexRecoveryKeys(slice) {
+      slice.state.beldexRecovery = null;
     },
   },
 });
@@ -118,8 +118,8 @@ export const {
   rpcSetEndpointFree,
   rpcSetRendezvousDiscoveredProviders,
   rpcSetSwapInfo,
-  rpcSetMoneroRecoveryKeys,
-  rpcResetMoneroRecoveryKeys,
+  rpcSetBeldexRecoveryKeys,
+  rpcResetBeldexRecoveryKeys,
 } = rpcSlice.actions;
 
 export default rpcSlice.reducer;

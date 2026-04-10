@@ -6,11 +6,11 @@ export function btcToSats(btc: number): number {
   return btc * 100000000;
 }
 
-export function piconerosToXmr(piconeros: number): number {
+export function piconerosToBeldex(piconeros: number): number {
   return piconeros / 1000000000000;
 }
 
-export function isXmrAddressValid(address: string, stagenet: boolean) {
+export function isBeldexAddressValid(address: string, stagenet: boolean) {
   const re = stagenet
     ? "[57][0-9AB][1-9A-HJ-NP-Za-km-z]{93}"
     : "[48][0-9AB][1-9A-HJ-NP-Za-km-z]{93}";
@@ -30,11 +30,11 @@ export function getBitcoinTxExplorerUrl(txid: string, testnet: boolean) {
   }/transaction/${txid}`;
 }
 
-export function getMoneroTxExplorerUrl(txid: string, stagenet: boolean) {
+export function getBeldexTxExplorerUrl(txid: string, stagenet: boolean) {
   if (stagenet) {
-    return `https://stagenet.xmrchain.net/tx/${txid}`;
+    return `https://stagenet.bdxchain.net/tx/${txid}`;
   }
-  return `https://xmrchain.net/tx/${txid}`;
+  return `https://bdxchain.net/tx/${txid}`;
 }
 
 export function secondsToDays(seconds: number): number {

@@ -18,7 +18,7 @@ mod test {
     use swap::cli::api::request::{Request, StartDaemonArgs};
     use swap::cli::api::Context;
 
-    use crate::harness::alice_run_until::is_xmr_lock_transaction_sent;
+    use crate::harness::alice_run_until::is_bdx_lock_transaction_sent;
     use crate::harness::bob_run_until::is_btc_locked;
     use crate::harness::{setup_test, SlowCancelConfig, TestContext};
     use swap::asb::FixedRate;
@@ -30,7 +30,7 @@ mod test {
     const SERVER_ADDRESS: &str = "127.0.0.1:1234";
     const SERVER_START_TIMEOUT_SECS: u64 = 50;
     const BITCOIN_ADDR: &str = "bcrt1qahvhjfc7vx5857zf8knxs8yp5lkm26jgyt0k76";
-    const MONERO_ADDR: &str = "53gEuGZUhP9JMEBZoGaFNzhwEgiG7hwQdMCqFxiyiTeFPmkbt1mAoNybEUvYBKHcnrSgxnVWgZsTvRBaHBNXPa8tHiCU51a";
+    const BELDEX_ADDR: &str = "53gEuGZUhP9JMEBZoGaFNzhwEgiG7hwQdMCqFxiyiTeFPmkbt1mAoNybEUvYBKHcnrSgxnVWgZsTvRBaHBNXPa8tHiCU51a";
     const SELLER: &str =
         "/ip4/127.0.0.1/tcp/9939/p2p/12D3KooWCdMKjesXMJz1SiZ7HgotrxuqhQJbP5sgBm2BwP1cqThi";
     const SWAP_ID: &str = "ea030832-3be9-454f-bb98-5ea9a788406b";
@@ -87,14 +87,14 @@ mod test {
     #[serial]
     pub async fn get_swap_info() {
         setup_test(SlowCancelConfig, |mut harness_ctx| async move {
-            // Start a swap and wait for xmr lock transaction to be published (XmrLockTransactionSent)
+            // Start a swap and wait for bdx lock transaction to be published (BeldexLockTransactionSent)
             let (bob_swap, _) = harness_ctx.bob_swap().await;
             let bob_swap_id = bob_swap.id;
             tokio::spawn(bob::run_until(bob_swap, is_btc_locked));
             let alice_swap = harness_ctx.alice_next_swap().await;
             alice::run_until(
                 alice_swap,
-                is_xmr_lock_transaction_sent,
+                is_bdx_lock_transaction_sent,
                 FixedRate::default(),
             )
             .await?;
@@ -132,7 +132,7 @@ mod test {
                     "start_date",
                     "btc_refund_address",
                     "tx_cancel_fee",
-                    "xmr_amount",
+                    "bdx_amount",
                     "completed",
                     "tx_lock_id",
                     "seller",
@@ -212,7 +212,7 @@ mod test {
             assert_eq!(response, HashMap::from([("balance".to_string(), 10000000)]));
 
             // TODO: Renable this test once the "log reference id" feature has been added again. The feature was removed as part of this PR:
-            // https://github.com/UnstoppableSwap/xmr-btc-swap/pull/10
+            // https://github.com/UnstoppableSwap/bdx-btc-swap/pull/10
             //
             // let mut params = ObjectParams::new();
             // params.insert("log_reference_id", "test_ref_id").unwrap();
@@ -288,7 +288,7 @@ mod test {
 
             let params = ObjectParams::new();
             let response: Result<HashMap<String, String>, _> =
-                client.request("buy_xmr", params).await;
+                client.request("buy_bdx", params).await;
             response.expect_err("Expected an error when no params are given");
 
             let mut params = ObjectParams::new();
@@ -296,10 +296,10 @@ mod test {
                 .insert("bitcoin_change_address", BITCOIN_ADDR)
                 .unwrap();
             params
-                .insert("monero_receive_address", MONERO_ADDR)
+                .insert("beldex_receive_address", BELDEX_ADDR)
                 .unwrap();
             let response: Result<HashMap<String, String>, _> =
-                client.request("buy_xmr", params).await;
+                client.request("buy_bdx", params).await;
             response.expect_err("Expected an error when seller is missing");
 
             let mut params = ObjectParams::new();
@@ -308,16 +308,16 @@ mod test {
                 .unwrap();
             params.insert("seller", SELLER).unwrap();
             let response: Result<HashMap<String, String>, _> =
-                client.request("buy_xmr", params).await;
-            response.expect_err("Expected an error when monero_receive_address is missing");
+                client.request("buy_bdx", params).await;
+            response.expect_err("Expected an error when beldex_receive_address is missing");
 
             let mut params = ObjectParams::new();
             params
-                .insert("monero_receive_address", MONERO_ADDR)
+                .insert("beldex_receive_address", BELDEX_ADDR)
                 .unwrap();
             params.insert("seller", SELLER).unwrap();
             let response: Result<HashMap<String, String>, _> =
-                client.request("buy_xmr", params).await;
+                client.request("buy_bdx", params).await;
             response.expect_err("Expected an error when bitcoin_change_address is missing");
 
             let mut params = ObjectParams::new();
@@ -325,11 +325,11 @@ mod test {
                 .insert("bitcoin_change_address", "invalid_address")
                 .unwrap();
             params
-                .insert("monero_receive_address", MONERO_ADDR)
+                .insert("beldex_receive_address", BELDEX_ADDR)
                 .unwrap();
             params.insert("seller", SELLER).unwrap();
             let response: Result<HashMap<String, String>, _> =
-                client.request("buy_xmr", params).await;
+                client.request("buy_bdx", params).await;
             response.expect_err("Expected an error when bitcoin_change_address is malformed");
 
             let mut params = ObjectParams::new();
@@ -337,23 +337,23 @@ mod test {
                 .insert("bitcoin_change_address", BITCOIN_ADDR)
                 .unwrap();
             params
-                .insert("monero_receive_address", "invalid_address")
+                .insert("beldex_receive_address", "invalid_address")
                 .unwrap();
             params.insert("seller", SELLER).unwrap();
             let response: Result<HashMap<String, String>, _> =
-                client.request("buy_xmr", params).await;
-            response.expect_err("Expected an error when monero_receive_address is malformed");
+                client.request("buy_bdx", params).await;
+            response.expect_err("Expected an error when beldex_receive_address is malformed");
 
             let mut params = ObjectParams::new();
             params
                 .insert("bitcoin_change_address", BITCOIN_ADDR)
                 .unwrap();
             params
-                .insert("monero_receive_address", MONERO_ADDR)
+                .insert("beldex_receive_address", BELDEX_ADDR)
                 .unwrap();
             params.insert("seller", "invalid_seller").unwrap();
             let response: Result<HashMap<String, String>, _> =
-                client.request("buy_xmr", params).await;
+                client.request("buy_bdx", params).await;
             response.expect_err("Expected an error when seller is malformed");
 
             let response: Result<HashMap<String, String>, _> = client
@@ -366,12 +366,12 @@ mod test {
                 .insert("bitcoin_change_address", change_address)
                 .unwrap();
             params
-                .insert("monero_receive_address", receive_address)
+                .insert("beldex_receive_address", receive_address)
                 .unwrap();
 
             params.insert("seller", alice_addr).unwrap();
             let response: HashMap<String, Value> = client
-                .request("buy_xmr", params)
+                .request("buy_bdx", params)
                 .await
                 .expect("Expected a HashMap, got an error");
 

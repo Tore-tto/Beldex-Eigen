@@ -1,16 +1,16 @@
 import { Typography } from "@material-ui/core";
-import MoneroIcon from "../../icons/MoneroIcon";
+import BeldexIcon from "../../icons/BeldexIcon";
 import DepositAddressInfoBox from "../../modal/swap/DepositAddressInfoBox";
 
-const XMR_DONATE_ADDRESS =
+const BDX_DONATE_ADDRESS =
   "87jS4C7ngk9EHdqFFuxGFgg8AyH63dRUoULshWDybFJaP75UA89qsutG5B1L1QTc4w228nsqsv8EjhL7bz8fB3611Mh98mg";
 
 export default function DonateInfoBox() {
   return (
     <DepositAddressInfoBox
       title="Donate"
-      address={XMR_DONATE_ADDRESS}
-      icon={<MoneroIcon />}
+      address={BDX_DONATE_ADDRESS}
+      icon={<BeldexIcon />}
       additionalContent={
         <Typography variant="subtitle2">
           We rely on generous donors like you to keep development moving

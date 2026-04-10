@@ -1,13 +1,13 @@
 use crate::asb::{Behaviour, OutEvent, Rate};
-use crate::monero::Amount;
-use crate::network::cooperative_xmr_redeem_after_punish::CooperativeXmrRedeemRejectReason;
-use crate::network::cooperative_xmr_redeem_after_punish::Response::{Fullfilled, Rejected};
+use crate::beldex::Amount;
+use crate::network::cooperative_bdx_redeem_after_punish::CooperativeBeldexRedeemRejectReason;
+use crate::network::cooperative_bdx_redeem_after_punish::Response::{Fullfilled, Rejected};
 use crate::network::quote::BidQuote;
 use crate::network::swap_setup::alice::WalletSnapshot;
 use crate::network::transfer_proof;
 use crate::protocol::alice::{AliceState, State3, Swap};
 use crate::protocol::{Database, State};
-use crate::{bitcoin, env, kraken, monero};
+use crate::{bitcoin, env, kraken, beldex};
 use anyhow::{Context, Result};
 use futures::future;
 use futures::future::{BoxFuture, FutureExt};
@@ -41,7 +41,7 @@ where
     swarm: libp2p::Swarm<Behaviour<LR>>,
     env_config: env::Config,
     bitcoin_wallet: Arc<bitcoin::Wallet>,
-    monero_wallet: Arc<monero::Wallet>,
+    beldex_wallet: Arc<beldex::Wallet>,
     db: Arc<dyn Database + Send + Sync>,
     latest_rate: LR,
     min_buy: bitcoin::Amount,
@@ -74,7 +74,7 @@ where
         swarm: Swarm<Behaviour<LR>>,
         env_config: env::Config,
         bitcoin_wallet: Arc<bitcoin::Wallet>,
-        monero_wallet: Arc<monero::Wallet>,
+        beldex_wallet: Arc<beldex::Wallet>,
         db: Arc<dyn Database + Send + Sync>,
         latest_rate: LR,
         min_buy: bitcoin::Amount,
@@ -87,7 +87,7 @@ where
             swarm,
             env_config,
             bitcoin_wallet,
-            monero_wallet,
+            beldex_wallet,
             db,
             latest_rate,
             swap_sender: swap_channel.sender,
@@ -141,7 +141,7 @@ where
             let swap = Swap {
                 event_loop_handle: handle,
                 bitcoin_wallet: self.bitcoin_wallet.clone(),
-                monero_wallet: self.monero_wallet.clone(),
+                beldex_wallet: self.beldex_wallet.clone(),
                 env_config: self.env_config,
                 db: self.db.clone(),
                 state: state.try_into().expect("Alice state loaded from db"),
@@ -170,7 +170,7 @@ where
                                 }
                             };
 
-                            let wallet_snapshot = match WalletSnapshot::capture(&self.bitcoin_wallet, &self.monero_wallet, &self.external_redeem_address, btc).await {
+                            let wallet_snapshot = match WalletSnapshot::capture(&self.bitcoin_wallet, &self.beldex_wallet, &self.external_redeem_address, btc).await {
                                 Ok(wallet_snapshot) => wallet_snapshot,
                                 Err(error) => {
                                     tracing::error!("Swap request will be ignored because we were unable to create wallet snapshot for swap: {:#}", error);
@@ -255,7 +255,7 @@ where
                                 channel
                             }.boxed());
                         }
-                        SwarmEvent::Behaviour(OutEvent::CooperativeXmrRedeemRequested { swap_id, channel, peer }) => {
+                        SwarmEvent::Behaviour(OutEvent::CooperativeBeldexRedeemRequested { swap_id, channel, peer }) => {
                             let swap_peer = self.db.get_peer_id(swap_id).await;
                             let swap_state = self.db.get_state(swap_id).await;
 
@@ -266,10 +266,10 @@ where
                                         swap_id = %swap_id,
                                         received_from = %peer,
                                         reason = "swap not found",
-                                        "Rejecting cooperative XMR redeem request"
+                                        "Rejecting cooperative BDX redeem request"
                                     );
-                                    if self.swarm.behaviour_mut().cooperative_xmr_redeem.send_response(channel, Rejected { swap_id, reason: CooperativeXmrRedeemRejectReason::UnknownSwap }).is_err() {
-                                        tracing::error!(swap_id = %swap_id, "Failed to reject cooperative XMR redeem request");
+                                    if self.swarm.behaviour_mut().cooperative_bdx_redeem.send_response(channel, Rejected { swap_id, reason: CooperativeBeldexRedeemRejectReason::UnknownSwap }).is_err() {
+                                        tracing::error!(swap_id = %swap_id, "Failed to reject cooperative BDX redeem request");
                                     }
                                     continue;
                                 }
@@ -281,10 +281,10 @@ where
                                     received_from = %peer,
                                     expected_from = %swap_peer,
                                     reason = "unexpected peer",
-                                    "Rejecting cooperative XMR redeem request"
+                                    "Rejecting cooperative BDX redeem request"
                                 );
-                                if self.swarm.behaviour_mut().cooperative_xmr_redeem.send_response(channel, Rejected { swap_id, reason: CooperativeXmrRedeemRejectReason::MaliciousRequest }).is_err() {
-                                    tracing::error!(swap_id = %swap_id, "Failed to reject cooperative XMR redeem request");
+                                if self.swarm.behaviour_mut().cooperative_bdx_redeem.send_response(channel, Rejected { swap_id, reason: CooperativeBeldexRedeemRejectReason::MaliciousRequest }).is_err() {
+                                    tracing::error!(swap_id = %swap_id, "Failed to reject cooperative BDX redeem request");
                                 }
                                 continue;
                             }
@@ -293,20 +293,20 @@ where
                                 tracing::warn!(
                                     swap_id = %swap_id,
                                     reason = "swap is in invalid state",
-                                    "Rejecting cooperative XMR redeem request"
+                                    "Rejecting cooperative BDX redeem request"
                                 );
-                                if self.swarm.behaviour_mut().cooperative_xmr_redeem.send_response(channel, Rejected { swap_id, reason: CooperativeXmrRedeemRejectReason::SwapInvalidState }).is_err() {
-                                    tracing::error!(swap_id = %swap_id, "Failed to reject cooperative XMR redeem request");
+                                if self.swarm.behaviour_mut().cooperative_bdx_redeem.send_response(channel, Rejected { swap_id, reason: CooperativeBeldexRedeemRejectReason::SwapInvalidState }).is_err() {
+                                    tracing::error!(swap_id = %swap_id, "Failed to reject cooperative BDX redeem request");
                                 }
                                 continue;
                             };
 
-                            if self.swarm.behaviour_mut().cooperative_xmr_redeem.send_response(channel, Fullfilled { swap_id, s_a: state3.s_a }).is_err() {
-                                tracing::error!(peer = %peer, "Failed to respond to cooperative XMR redeem request");
+                            if self.swarm.behaviour_mut().cooperative_bdx_redeem.send_response(channel, Fullfilled { swap_id, s_a: state3.s_a }).is_err() {
+                                tracing::error!(peer = %peer, "Failed to respond to cooperative BDX redeem request");
                                 continue;
                             }
 
-                            tracing::info!(swap_id = %swap_id, peer = %peer, "Fullfilled cooperative XMR redeem request");
+                            tracing::info!(swap_id = %swap_id, peer = %peer, "Fullfilled cooperative BDX redeem request");
                         }
                         SwarmEvent::Behaviour(OutEvent::Rendezvous(libp2p::rendezvous::client::Event::Registered { rendezvous_node, ttl, namespace })) => {
                             tracing::info!("Successfully registered with rendezvous node: {} with namespace: {} and TTL: {:?}", rendezvous_node, namespace, ttl);
@@ -385,21 +385,21 @@ where
             .ask()
             .context("Failed to compute asking price")?;
 
-        let balance = self.monero_wallet.get_balance().await?;
+        let balance = self.beldex_wallet.get_balance().await?;
 
-        // use unlocked monero balance for quote
-        let xmr = Amount::from_piconero(balance.unlocked_balance);
+        // use unlocked beldex balance for quote
+        let bdx = Amount::from_atomic(balance.unlocked_balance);
 
-        let max_bitcoin_for_monero = xmr.max_bitcoin_for_price(ask_price).ok_or_else(|| {
-            anyhow::anyhow!("Bitcoin price ({}) x Monero ({}) overflow", ask_price, xmr)
+        let max_bitcoin_for_beldex = bdx.max_bitcoin_for_price(ask_price).ok_or_else(|| {
+            anyhow::anyhow!("Bitcoin price ({}) x Beldex ({}) overflow", ask_price, bdx)
         })?;
 
-        tracing::debug!(%ask_price, %xmr, %max_bitcoin_for_monero);
+        tracing::debug!(%ask_price, %bdx, %max_bitcoin_for_beldex);
 
-        if min_buy > max_bitcoin_for_monero {
+        if min_buy > max_bitcoin_for_beldex {
             tracing::warn!(
-                        "Your Monero balance is too low to initiate a swap, as your minimum swap amount is {}. You could at most swap {}",
-                        min_buy, max_bitcoin_for_monero
+                        "Your Beldex balance is too low to initiate a swap, as your minimum swap amount is {}. You could at most swap {}",
+                        min_buy, max_bitcoin_for_beldex
                     );
 
             return Ok(BidQuote {
@@ -409,15 +409,15 @@ where
             });
         }
 
-        if max_buy > max_bitcoin_for_monero {
+        if max_buy > max_bitcoin_for_beldex {
             tracing::warn!(
-                    "Your Monero balance is too low to initiate a swap with the maximum swap amount {} that you have specified in your config. You can at most swap {}",
-                    max_buy, max_bitcoin_for_monero
+                    "Your Beldex balance is too low to initiate a swap with the maximum swap amount {} that you have specified in your config. You can at most swap {}",
+                    max_buy, max_bitcoin_for_beldex
                 );
             return Ok(BidQuote {
                 price: ask_price,
                 min_quantity: min_buy,
-                max_quantity: max_bitcoin_for_monero,
+                max_quantity: max_bitcoin_for_beldex,
             });
         }
 
@@ -443,7 +443,7 @@ where
         let swap = Swap {
             event_loop_handle: handle,
             bitcoin_wallet: self.bitcoin_wallet.clone(),
-            monero_wallet: self.monero_wallet.clone(),
+            beldex_wallet: self.beldex_wallet.clone(),
             env_config: self.env_config,
             db: self.db.clone(),
             state: initial_state,
@@ -563,7 +563,7 @@ impl LatestRate for KrakenRate {
 #[derive(Debug)]
 pub struct EventLoopHandle {
     recv_encrypted_signature: Option<bmrng::RequestReceiver<bitcoin::EncryptedSignature, ()>>,
-    send_transfer_proof: Option<bmrng::RequestSender<monero::TransferProof, ()>>,
+    send_transfer_proof: Option<bmrng::RequestSender<beldex::TransferProof, ()>>,
 }
 
 impl EventLoopHandle {
@@ -582,7 +582,7 @@ impl EventLoopHandle {
         Ok(tx_redeem_encsig)
     }
 
-    pub async fn send_transfer_proof(&mut self, msg: monero::TransferProof) -> Result<()> {
+    pub async fn send_transfer_proof(&mut self, msg: beldex::TransferProof) -> Result<()> {
         self.send_transfer_proof
             .take()
             .context("Transfer proof was already sent")?

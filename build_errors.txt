@@ -1,0 +1,373 @@
+    Checking swap v0.13.2 (/home/vs041/beldex-project/eigen_wallet/atomic_swap/gui-preview/swap)
+   Compiling unstoppableswap-gui-rs v0.0.0 (/home/vs041/beldex-project/eigen_wallet/atomic_swap/gui-preview/src-tauri)
+error[E0583]: file not found for module `cooperative_bdx_redeem_after_punish`
+ --> swap/src/network.rs:4:1
+  |
+4 | pub mod cooperative_bdx_redeem_after_punish;
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: to create the module `cooperative_bdx_redeem_after_punish`, create file "swap/src/network/cooperative_bdx_redeem_after_punish.rs" or "swap/src/network/cooperative_bdx_redeem_after_punish/mod.rs"
+  = note: if there is a `mod cooperative_bdx_redeem_after_punish` elsewhere in the crate already, import it with `use crate::...` instead
+
+error: failed to find data for query 
+               insert into beldex_addresses (
+                   swap_id,
+                   address
+                   ) values (?, ?);
+               
+   --> swap/src/database/sqlite.rs:93:9
+    |
+93  | /         sqlx::query!(
+94  | |             r#"
+95  | |         insert into beldex_addresses (
+96  | |             swap_id,
+...   |
+101 | |             address
+102 | |         )
+    | |_________^
+    |
+    = note: this error originates in the macro `$crate::sqlx_macros::expand_query` which comes from the expansion of the macro `sqlx::query` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: failed to find data for query 
+               SELECT address
+               FROM beldex_addresses
+               WHERE swap_id = ?
+               
+   --> swap/src/database/sqlite.rs:114:19
+    |
+114 |           let row = sqlx::query!(
+    |  ___________________^
+115 | |             r#"
+116 | |         SELECT address
+117 | |         FROM beldex_addresses
+...   |
+120 | |             swap_id
+121 | |         )
+    | |_________^
+    |
+    = note: this error originates in the macro `$crate::sqlx_macros::expand_query` which comes from the expansion of the macro `sqlx::query` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0432]: unresolved import `crate::network::cooperative_bdx_redeem_after_punish::CooperativeXmrRedeemRejectReason`
+ --> swap/src/asb/event_loop.rs:3:5
+  |
+3 | use crate::network::cooperative_bdx_redeem_after_punish::CooperativeXmrRedeemRejectReason;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `CooperativeXmrRedeemRejectReason` in `network::cooperative_bdx_redeem_after_punish`
+
+error[E0432]: unresolved import `crate::network::cooperative_bdx_redeem_after_punish::Response`
+ --> swap/src/asb/event_loop.rs:4:58
+  |
+4 | use crate::network::cooperative_bdx_redeem_after_punish::Response::{Fullfilled, Rejected};
+  |                                                          ^^^^^^^^ could not find `Response` in `cooperative_bdx_redeem_after_punish`
+
+error[E0432]: unresolved import `crate::network::cooperative_bdx_redeem_after_punish::CooperativeXmrRedeemRejectReason`
+ --> swap/src/cli/behaviour.rs:2:5
+  |
+2 | use crate::network::cooperative_bdx_redeem_after_punish::CooperativeXmrRedeemRejectReason;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `CooperativeXmrRedeemRejectReason` in `network::cooperative_bdx_redeem_after_punish`
+
+error[E0432]: unresolved imports `crate::network::cooperative_bdx_redeem_after_punish::Request`, `crate::network::cooperative_bdx_redeem_after_punish::Response`
+ --> swap/src/cli/event_loop.rs:4:59
+  |
+4 | use crate::network::cooperative_bdx_redeem_after_punish::{Request, Response};
+  |                                                           ^^^^^^^  ^^^^^^^^ no `Response` in `network::cooperative_bdx_redeem_after_punish`
+  |                                                           |
+  |                                                           no `Request` in `network::cooperative_bdx_redeem_after_punish`
+  |
+  = help: consider importing one of these items instead:
+          core::error::Request
+          crate::cli::api::request::Request
+          crate::network::encrypted_signature::Request
+          crate::network::transfer_proof::Request
+          hyper::Request
+          reqwest::Request
+          std::error::Request
+          tauri::ipc::Request
+  = help: consider importing one of these items instead:
+          hyper::Response
+          reqwest::Response
+          tauri::ipc::Response
+
+error[E0432]: unresolved import `crate::network::cooperative_bdx_redeem_after_punish::Response`
+ --> swap/src/protocol/bob/swap.rs:4:58
+  |
+4 | use crate::network::cooperative_bdx_redeem_after_punish::Response::{Fullfilled, Rejected};
+  |                                                          ^^^^^^^^ could not find `Response` in `cooperative_bdx_redeem_after_punish`
+
+error[E0432]: unresolved import `crate::cli::api::request::BuyXmrArgs`
+ --> swap/src/cli/command.rs:3:18
+  |
+3 |     BalanceArgs, BuyXmrArgs, CancelAndRefundArgs, ExportBitcoinWalletArgs, GetConfigArgs,
+  |                  ^^^^^^^^^^ no `BuyXmrArgs` in `cli::api::request`
+
+error[E0432]: unresolved import `crate::cli::api::request::BuyXmrArgs`
+ --> swap/src/rpc/methods.rs:3:18
+  |
+3 |     BalanceArgs, BuyXmrArgs, CancelAndRefundArgs, GetCurrentSwapArgs, GetHistoryArgs, GetLogsArgs,
+  |                  ^^^^^^^^^^ no `BuyXmrArgs` in `cli::api::request`
+
+error[E0412]: cannot find type `Response` in module `cooperative_bdx_redeem_after_punish`
+  --> swap/src/asb/network.rs:82:75
+   |
+82 |             channel: ResponseChannel<cooperative_bdx_redeem_after_punish::Response>,
+   |                                                                           ^^^^^^^^ not found in `cooperative_bdx_redeem_after_punish`
+   |
+help: consider importing one of these items
+   |
+49 +     use hyper::Response;
+   |
+49 +     use reqwest::Response;
+   |
+49 +     use tauri::ipc::Response;
+   |
+help: if you import `Response`, refer to it directly
+   |
+82 -             channel: ResponseChannel<cooperative_bdx_redeem_after_punish::Response>,
+82 +             channel: ResponseChannel<Response>,
+   |
+
+error[E0412]: cannot find type `Behaviour` in module `cooperative_bdx_redeem_after_punish`
+   --> swap/src/asb/network.rs:124:74
+    |
+124 |         pub cooperative_bdx_redeem: cooperative_bdx_redeem_after_punish::Behaviour,
+    |                                                                          ^^^^^^^^^ not found in `cooperative_bdx_redeem_after_punish`
+    |
+help: consider importing one of these items
+    |
+49  +     use crate::asb::Behaviour;
+    |
+49  +     use crate::asb::network::rendezvous::Behaviour;
+    |
+49  +     use crate::cli::Behaviour;
+    |
+49  +     use crate::network::encrypted_signature::Behaviour;
+    |
+      and 5 other candidates
+help: if you import `Behaviour`, refer to it directly
+    |
+124 -         pub cooperative_bdx_redeem: cooperative_bdx_redeem_after_punish::Behaviour,
+124 +         pub cooperative_bdx_redeem: Behaviour,
+    |
+
+error[E0425]: cannot find function `alice` in module `cooperative_bdx_redeem_after_punish`
+   --> swap/src/asb/network.rs:171:78
+    |
+171 |                 cooperative_bdx_redeem: cooperative_bdx_redeem_after_punish::alice(),
+    |                                                                              ^^^^^ not found in `cooperative_bdx_redeem_after_punish`
+    |
+help: consider importing one of these items
+    |
+49  +     use crate::network::encrypted_signature::alice;
+    |
+49  +     use crate::network::transfer_proof::alice;
+    |
+help: if you import `alice`, refer to it directly
+    |
+171 -                 cooperative_bdx_redeem: cooperative_bdx_redeem_after_punish::alice(),
+171 +                 cooperative_bdx_redeem: alice(),
+    |
+
+error[E0412]: cannot find type `Behaviour` in module `cooperative_bdx_redeem_after_punish`
+  --> swap/src/cli/behaviour.rs:81:70
+   |
+81 |     pub cooperative_bdx_redeem: cooperative_bdx_redeem_after_punish::Behaviour,
+   |                                                                      ^^^^^^^^^ not found in `cooperative_bdx_redeem_after_punish`
+   |
+help: consider importing one of these items
+   |
+1  + use crate::asb::Behaviour;
+   |
+1  + use crate::cli::Behaviour;
+   |
+1  + use crate::network::encrypted_signature::Behaviour;
+   |
+1  + use crate::network::quote::Behaviour;
+   |
+     and 4 other candidates
+help: if you import `Behaviour`, refer to it directly
+   |
+81 -     pub cooperative_bdx_redeem: cooperative_bdx_redeem_after_punish::Behaviour,
+81 +     pub cooperative_bdx_redeem: Behaviour,
+   |
+
+error[E0425]: cannot find function `bob` in module `cooperative_bdx_redeem_after_punish`
+   --> swap/src/cli/behaviour.rs:109:74
+    |
+109 |             cooperative_bdx_redeem: cooperative_bdx_redeem_after_punish::bob(),
+    |                                                                          ^^^ not found in `cooperative_bdx_redeem_after_punish`
+    |
+help: consider importing one of these items
+    |
+1   + use crate::network::encrypted_signature::bob;
+    |
+1   + use crate::network::transfer_proof::bob;
+    |
+help: if you import `bob`, refer to it directly
+    |
+109 -             cooperative_bdx_redeem: cooperative_bdx_redeem_after_punish::bob(),
+109 +             cooperative_bdx_redeem: bob(),
+    |
+
+error[E0425]: cannot find value `MONERO_FEE` in module `beldex`
+  --> swap/src/network/swap_setup/alice.rs:82:31
+   |
+82 |             lock_fee: beldex::MONERO_FEE,
+   |                               ^^^^^^^^^^ not found in `beldex`
+
+warning: unused import: `beldexd`
+ --> swap/src/beldex/wallet.rs:8:18
+  |
+8 | use beldex_rpc::{beldexd, jsonrpc, wallet};
+  |                  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+error[E0599]: no function or associated item named `from_picobeldex` found for struct `beldex::Amount` in the current scope
+   --> swap/src/asb/event_loop.rs:391:27
+    |
+391 |         let bdx = Amount::from_picobeldex(balance.unlocked_balance);
+    |                           ^^^^^^^^^^^^^^^ function or associated item not found in `Amount`
+    |
+   ::: swap/src/beldex.rs:91:1
+    |
+91  | pub struct Amount(u64);
+    | ----------------- function or associated item `from_picobeldex` not found for this struct
+    |
+note: if you're trying to build a new `beldex::Amount` consider using one of the following associated functions:
+      beldex::Amount::from_atomic
+      beldex::Amount::from_beldex
+      beldex::Amount::parse_beldex
+      beldex::Amount::from_decimal
+   --> swap/src/beldex.rs:103:5
+    |
+103 |     pub const fn from_atomic(amount: u64) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+133 |     pub fn from_beldex(amount: f64) -> Result<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+138 |     pub fn parse_beldex(amount: &str) -> Result<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+147 |     fn from_decimal(amount: Decimal) -> Result<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: there is an associated function `from_beldex` with a similar name
+    |
+391 |         let bdx = Amount::from_beldex(balance.unlocked_balance);
+    |                           ~~~~~~~~~~~
+
+error[E0599]: no variant named `BeldexLockProofReceived` found for enum `protocol::bob::state::BobState`
+   --> swap/src/cli/api/request.rs:494:21
+    |
+494 |         | BobState::BeldexLockProofReceived { state, .. } => {
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^ help: there is a variant with a similar name: `XmrLockProofReceived`
+    |
+   ::: swap/src/protocol/bob/state.rs:25:1
+    |
+25  | pub enum BobState {
+    | ----------------- variant `BeldexLockProofReceived` not found here
+
+error[E0599]: no variant or associated item named `BeldexLocked` found for enum `protocol::bob::state::BobState` in the current scope
+   --> swap/src/cli/api/request.rs:497:19
+    |
+497 |         BobState::BeldexLocked(state) | BobState::EncSigSent(state) => {
+    |                   ^^^^^^^^^^^^ variant or associated item not found in `BobState`
+    |
+   ::: swap/src/protocol/bob/state.rs:25:1
+    |
+25  | pub enum BobState {
+    | ----------------- variant or associated item `BeldexLocked` not found for this enum
+
+error[E0599]: no variant named `BeldexRedeemed` found for enum `protocol::bob::state::BobState`
+   --> swap/src/cli/api/request.rs:504:73
+    |
+504 |         BobState::BtcRefunded(_) | BobState::BtcRedeemed(_) | BobState::BeldexRedeemed { .. } => None,
+    |                                                                         ^^^^^^^^^^^^^^ variant not found in `protocol::bob::state::BobState`
+    |
+   ::: swap/src/protocol/bob/state.rs:25:1
+    |
+25  | pub enum BobState {
+    | ----------------- variant `BeldexRedeemed` not found here
+
+error[E0599]: no method named `as_picobeldex` found for struct `beldex::Amount` in the current scope
+  --> swap/src/asb/rate.rs:66:86
+   |
+66 |         let base_in_picobeldex = base_in_bdx * Decimal::from(beldex::Amount::ONE_BDX.as_picobeldex());
+   |                                                                                      ^^^^^^^^^^^^^ method not found in `Amount`
+   |
+  ::: swap/src/beldex.rs:91:1
+   |
+91 | pub struct Amount(u64);
+   | ----------------- method `as_picobeldex` not found for this struct
+
+error[E0599]: no function or associated item named `from_picobeldex` found for struct `beldex::Amount` in the current scope
+   --> swap/src/asb/rate.rs:72:28
+    |
+72  |         Ok(beldex::Amount::from_picobeldex(base_in_picobeldex))
+    |                            ^^^^^^^^^^^^^^^ function or associated item not found in `Amount`
+    |
+   ::: swap/src/beldex.rs:91:1
+    |
+91  | pub struct Amount(u64);
+    | ----------------- function or associated item `from_picobeldex` not found for this struct
+    |
+note: if you're trying to build a new `beldex::Amount` consider using one of the following associated functions:
+      beldex::Amount::from_atomic
+      beldex::Amount::from_beldex
+      beldex::Amount::parse_beldex
+      beldex::Amount::from_decimal
+   --> swap/src/beldex.rs:103:5
+    |
+103 |     pub const fn from_atomic(amount: u64) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+133 |     pub fn from_beldex(amount: f64) -> Result<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+138 |     pub fn parse_beldex(amount: &str) -> Result<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+147 |     fn from_decimal(amount: Decimal) -> Result<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: there is an associated function `from_beldex` with a similar name
+    |
+72  |         Ok(beldex::Amount::from_beldex(base_in_picobeldex))
+    |                            ~~~~~~~~~~~
+
+error[E0599]: no function or associated item named `from_picobeldex` found for struct `beldex::Amount` in the current scope
+   --> swap/src/network/swap_setup/alice.rs:333:40
+    |
+333 |                 let unlocked = Amount::from_picobeldex(wallet_snapshot.balance.unlocked_balance);
+    |                                        ^^^^^^^^^^^^^^^ function or associated item not found in `Amount`
+    |
+   ::: swap/src/beldex.rs:91:1
+    |
+91  | pub struct Amount(u64);
+    | ----------------- function or associated item `from_picobeldex` not found for this struct
+    |
+note: if you're trying to build a new `beldex::Amount` consider using one of the following associated functions:
+      beldex::Amount::from_atomic
+      beldex::Amount::from_beldex
+      beldex::Amount::parse_beldex
+      beldex::Amount::from_decimal
+   --> swap/src/beldex.rs:103:5
+    |
+103 |     pub const fn from_atomic(amount: u64) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+133 |     pub fn from_beldex(amount: f64) -> Result<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+138 |     pub fn parse_beldex(amount: &str) -> Result<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+147 |     fn from_decimal(amount: Decimal) -> Result<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: there is an associated function `from_beldex` with a similar name
+    |
+333 |                 let unlocked = Amount::from_beldex(wallet_snapshot.balance.unlocked_balance);
+    |                                        ~~~~~~~~~~~
+
+Some errors have detailed explanations: E0412, E0425, E0432, E0583, E0599.
+For more information about an error, try `rustc --explain E0412`.
+warning: `swap` (lib) generated 1 warning
+error: could not compile `swap` (lib) due to 23 previous errors; 1 warning emitted

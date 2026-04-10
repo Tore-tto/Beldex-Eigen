@@ -3,13 +3,13 @@ import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { setAlerts } from "store/features/alertsSlice";
 import { setRegistryProviders } from "store/features/providersSlice";
-import { setBtcPrice, setXmrPrice } from "store/features/ratesSlice";
+import { setBtcPrice, setBeldexPrice } from "store/features/ratesSlice";
 import logger from "../utils/logger";
 import {
   fetchAlertsViaHttp,
   fetchBtcPrice,
   fetchProvidersViaHttp,
-  fetchXmrPrice,
+  fetchBeldexPrice,
 } from "./api";
 import App from "./components/App";
 import {
@@ -56,9 +56,9 @@ async function fetchInitialData() {
   }
 
   try {
-    const xmrPrice = await fetchXmrPrice();
-    store.dispatch(setXmrPrice(xmrPrice));
-    logger.info({ xmrPrice }, "Fetched XMR price");
+    const bdxPrice = await fetchBeldexPrice();
+    store.dispatch(setBeldexPrice(bdxPrice));
+    logger.info({ bdxPrice }, "Fetched BDX price");
 
     const btcPrice = await fetchBtcPrice();
     store.dispatch(setBtcPrice(btcPrice));

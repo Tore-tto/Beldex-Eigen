@@ -1,4 +1,4 @@
-use crate::monero;
+use crate::beldex;
 use anyhow::{Context, Result};
 use libp2p::core::upgrade;
 use libp2p::swarm::NegotiatedSubstream;
@@ -19,7 +19,7 @@ pub mod protocol {
 
     pub fn new() -> SwapSetup {
         from_fn(
-            b"/comit/xmr/btc/swap_setup/1.0.0",
+            b"/comit/bdx/btc/swap_setup/1.0.0",
             Box::new(|socket, _| future::ready(Ok(socket))),
         )
     }
@@ -41,8 +41,8 @@ pub mod protocol {
 pub struct BlockchainNetwork {
     #[serde(with = "crate::bitcoin::network")]
     pub bitcoin: bitcoin::Network,
-    #[serde(with = "crate::monero::network")]
-    pub monero: monero::Network,
+    #[serde(with = "crate::beldex::network")]
+    pub beldex: beldex::Network,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -54,7 +54,7 @@ pub struct SpotPriceRequest {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum SpotPriceResponse {
-    Xmr(monero::Amount),
+    Beldex(beldex::Amount),
     Error(SpotPriceError),
 }
 

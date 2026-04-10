@@ -19,7 +19,7 @@ mod tests {
     use crate::cli::list_sellers::{Seller, Status};
     use crate::network::quote;
     use crate::network::quote::BidQuote;
-    use crate::network::rendezvous::XmrBtcNamespace;
+    use crate::network::rendezvous::BeldexBtcNamespace;
     use crate::network::test::{new_swarm, SwarmExt};
     use futures::StreamExt;
     use libp2p::multiaddr::Protocol;
@@ -32,7 +32,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_sellers_should_report_all_registered_asbs_with_a_quote() {
-        let namespace = XmrBtcNamespace::Mainnet;
+        let namespace = BeldexBtcNamespace::Mainnet;
         let (rendezvous_address, rendezvous_peer_id) = setup_rendezvous_point().await;
         let expected_seller_1 = setup_asb(rendezvous_peer_id, &rendezvous_address, namespace).await;
         let expected_seller_2 = setup_asb(rendezvous_peer_id, &rendezvous_address, namespace).await;
@@ -72,7 +72,7 @@ mod tests {
     async fn setup_asb(
         rendezvous_peer_id: PeerId,
         rendezvous_address: &Multiaddr,
-        namespace: XmrBtcNamespace,
+        namespace: BeldexBtcNamespace,
     ) -> Seller {
         let static_quote = BidQuote {
             price: bitcoin::Amount::from_sat(1337),

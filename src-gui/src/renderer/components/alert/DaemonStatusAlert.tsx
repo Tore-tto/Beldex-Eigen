@@ -50,10 +50,10 @@ export default function DaemonStatusAlert() {
               Connecting to the Bitcoin network
             </LoadingSpinnerAlert>
           );
-        case TauriContextInitializationProgress.OpeningMoneroWallet:
+        case TauriContextInitializationProgress.OpeningBeldexWallet:
           return (
             <LoadingSpinnerAlert severity="warning">
-              Connecting to the Monero network
+              Connecting to the Beldex network
             </LoadingSpinnerAlert>
           );
         case TauriContextInitializationProgress.OpeningDatabase:

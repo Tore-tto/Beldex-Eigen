@@ -54,7 +54,7 @@ export default function SwapDialog({
       <SwapDialogTitle
         debug={debug}
         setDebug={setDebug}
-        title="Swap Bitcoin for Monero"
+        title="Swap Bitcoin for Beldex"
       />
 
       <DialogContent dividers className={classes.content}>

@@ -1,7 +1,7 @@
 mod impl_from_rr_event;
 
 pub mod cbor_request_response;
-pub mod cooperative_xmr_redeem_after_punish;
+pub mod cooperative_bdx_redeem_after_punish;
 pub mod encrypted_signature;
 pub mod json_pull_codec;
 pub mod quote;

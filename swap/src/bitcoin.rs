@@ -87,15 +87,15 @@ impl SecretKey {
     // TxRefund encsigning explanation:
     //
     // A and B, are the Bitcoin Public Keys which go on the joint output for
-    // TxLock_Bitcoin. S_a and S_b, are the Monero Public Keys which go on the
-    // joint output for TxLock_Monero
+    // TxLock_Bitcoin. S_a and S_b, are the Beldex Public Keys which go on the
+    // joint output for TxLock_Beldex
 
     // tx_refund: multisig(A, B), published by bob
     // bob can produce sig on B using b
     // alice sends over an encrypted signature on A encrypted with S_b
     // s_b is leaked to alice when bob publishes signed tx_refund allowing her to
     // recover s_b: recover(encsig, S_b, sig_tx_refund) = s_b
-    // alice now has s_a and s_b and can refund monero
+    // alice now has s_a and s_b and can refund beldex
 
     // self = a, Y = S_b, digest = tx_refund
     pub fn encsign(&self, Y: PublicKey, digest: Sighash) -> EncryptedSignature {
@@ -443,7 +443,7 @@ mod tests {
         let bob_wallet = WalletBuilder::new(Amount::ONE_BTC.to_sat()).build();
         let spending_fee = Amount::from_sat(1_000);
         let btc_amount = Amount::from_sat(500_000);
-        let xmr_amount = crate::monero::Amount::from_piconero(10000);
+        let bdx_amount = crate::beldex::Amount::from_atomic(10000);
 
         let tx_redeem_fee = alice_wallet
             .estimate_fee(TxRedeem::weight(), btc_amount)
@@ -459,7 +459,7 @@ mod tests {
         let config = Regtest::get_config();
         let alice_state0 = alice::State0::new(
             btc_amount,
-            xmr_amount,
+            bdx_amount,
             config,
             redeem_address,
             punish_address,
@@ -472,11 +472,11 @@ mod tests {
             Uuid::new_v4(),
             &mut OsRng,
             btc_amount,
-            xmr_amount,
+            bdx_amount,
             config.bitcoin_cancel_timelock,
             config.bitcoin_punish_timelock,
             bob_wallet.new_address().await.unwrap(),
-            config.monero_finality_confirmations,
+            config.beldex_finality_confirmations,
             spending_fee,
             spending_fee,
         );
@@ -501,7 +501,7 @@ mod tests {
         let alice_state3 = alice_state2.receive(bob_message4).unwrap();
 
         let (bob_state3, _tx_lock) = bob_state2.lock_btc().await.unwrap();
-        let bob_state4 = bob_state3.xmr_locked(monero_rpc::wallet::BlockHeight { height: 0 });
+        let bob_state4 = bob_state3.bdx_locked(beldex_rpc::wallet::BlockHeight { height: 0 });
         let encrypted_signature = bob_state4.tx_redeem_encsig();
         let bob_state6 = bob_state4.cancel();
 

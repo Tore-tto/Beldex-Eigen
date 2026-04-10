@@ -7,7 +7,7 @@ export default function BitcoinPunishedPage() {
       <DialogContentText>
         Unfortunately, the swap was not successful, and you&apos;ve incurred a
         penalty because the swap was not refunded in time. Both the Bitcoin and
-        Monero are irretrievable.
+        Beldex are irretrievable.
       </DialogContentText>
       <FeedbackInfoBox />
     </Box>

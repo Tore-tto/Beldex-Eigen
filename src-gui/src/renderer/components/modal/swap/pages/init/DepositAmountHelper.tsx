@@ -3,9 +3,9 @@ import { BidQuote } from "models/tauriModel";
 import { useState } from "react";
 import { useAppSelector } from "store/hooks";
 import { btcToSats, satsToBtc } from "utils/conversionUtils";
-import { MoneroAmount } from "../../../../other/Units";
+import { BeldexAmount } from "../../../../other/Units";
 
-const MONERO_FEE = 0.000016;
+const BELDEX_FEE = 0.000016;
 
 const useStyles = makeStyles((theme) => ({
   outer: {
@@ -54,7 +54,7 @@ export default function DepositAmountHelper({
     );
   }
 
-  function calcXMRAmount(): number | null {
+  function calcBDXAmount(): number | null {
     if (Number.isNaN(amount)) return null;
     if (hasError()) return null;
     if (quote.price == null) return null;
@@ -65,7 +65,7 @@ export default function DepositAmountHelper({
         min_bitcoin_lock_tx_fee,
       ) /
         quote.price -
-      MONERO_FEE
+      BELDEX_FEE
     );
   }
 
@@ -84,7 +84,7 @@ export default function DepositAmountHelper({
       />
       <Typography variant="subtitle2">
         BTC will give you approximately{" "}
-        <MoneroAmount amount={calcXMRAmount()} />.
+        <BeldexAmount amount={calcBDXAmount()} />.
       </Typography>
     </Box>
   );

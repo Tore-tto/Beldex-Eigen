@@ -4,7 +4,7 @@ use crate::network::swap_setup::{
 };
 use crate::protocol::bob::{State0, State2};
 use crate::protocol::{Message1, Message3};
-use crate::{bitcoin, cli, env, monero};
+use crate::{bitcoin, cli, env, beldex};
 use anyhow::Result;
 use futures::future::{BoxFuture, OptionFuture};
 use futures::{AsyncWriteExt, FutureExt};
@@ -161,23 +161,23 @@ impl ProtocolsHandler for Handler {
                     btc: info.btc,
                     blockchain_network: BlockchainNetwork {
                         bitcoin: env_config.bitcoin_network,
-                        monero: env_config.monero_network,
+                        beldex: env_config.beldex_network,
                     },
                 },
             )
             .await?;
 
-            let xmr = Result::from(read_cbor_message::<SpotPriceResponse>(&mut substream).await?)?;
+            let bdx = Result::from(read_cbor_message::<SpotPriceResponse>(&mut substream).await?)?;
 
             let state0 = State0::new(
                 info.swap_id,
                 &mut rand::thread_rng(),
                 info.btc,
-                xmr,
+                bdx,
                 env_config.bitcoin_cancel_timelock,
                 env_config.bitcoin_punish_timelock,
                 info.bitcoin_refund_address,
-                env_config.monero_finality_confirmations,
+                env_config.beldex_finality_confirmations,
                 info.tx_refund_fee,
                 info.tx_cancel_fee,
             );
@@ -252,10 +252,10 @@ impl ProtocolsHandler for Handler {
     }
 }
 
-impl From<SpotPriceResponse> for Result<monero::Amount, Error> {
+impl From<SpotPriceResponse> for Result<beldex::Amount, Error> {
     fn from(response: SpotPriceResponse) -> Self {
         match response {
-            SpotPriceResponse::Xmr(amount) => Ok(amount),
+            SpotPriceResponse::Beldex(amount) => Ok(amount),
             SpotPriceResponse::Error(e) => Err(e.into()),
         }
     }
@@ -275,7 +275,7 @@ pub enum Error {
         max: bitcoin::Amount,
         buy: bitcoin::Amount,
     },
-    #[error("Seller's XMR balance is currently too low to fulfill the swap request to buy {buy}, please try again later")]
+    #[error("Seller's BDX balance is currently too low to fulfill the swap request to buy {buy}, please try again later")]
     BalanceTooLow { buy: bitcoin::Amount },
 
     #[error("Seller blockchain network {asb:?} setup did not match your blockchain network setup {cli:?}")]

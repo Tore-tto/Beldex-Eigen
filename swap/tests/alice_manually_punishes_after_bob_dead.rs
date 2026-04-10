@@ -1,6 +1,6 @@
 pub mod harness;
 
-use harness::alice_run_until::is_xmr_lock_transaction_sent;
+use harness::alice_run_until::is_bdx_lock_transaction_sent;
 use harness::bob_run_until::is_btc_locked;
 use harness::FastPunishConfig;
 use swap::asb;
@@ -9,9 +9,9 @@ use swap::protocol::alice::AliceState;
 use swap::protocol::bob::BobState;
 use swap::protocol::{alice, bob};
 
-/// Bob locks Btc and Alice locks Xmr. Bob does not act; he fails to send Alice
+/// Bob locks Btc and Alice locks Beldex. Bob does not act; he fails to send Alice
 /// the encsig and fail to refund or redeem. Alice punishes using the cancel and
-/// punish command. Bob then cooperates with Alice and redeems XMR with her key.
+/// punish command. Bob then cooperates with Alice and redeems BDX with her key.
 #[tokio::test]
 async fn alice_manually_punishes_after_bob_dead() {
     harness::setup_test(FastPunishConfig, |mut ctx| async move {
@@ -24,7 +24,7 @@ async fn alice_manually_punishes_after_bob_dead() {
 
         let alice_swap = tokio::spawn(alice::run_until(
             alice_swap,
-            is_xmr_lock_transaction_sent,
+            is_bdx_lock_transaction_sent,
             FixedRate::default(),
         ));
 
@@ -34,7 +34,7 @@ async fn alice_manually_punishes_after_bob_dead() {
         let alice_state = alice_swap.await??;
 
         // Ensure cancel timelock is expired
-        if let AliceState::XmrLockTransactionSent { state3, .. } = alice_state {
+        if let AliceState::BeldexLockTransactionSent { state3, .. } = alice_state {
             alice_bitcoin_wallet
                 .subscribe_to(state3.tx_lock)
                 .await

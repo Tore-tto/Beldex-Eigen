@@ -9,7 +9,7 @@ use crate::network::quote::{BidQuote, ZeroQuoteReceived};
 use crate::network::swarm;
 use crate::protocol::bob::{BobState, Swap};
 use crate::protocol::{bob, State};
-use crate::{bitcoin, cli, monero, rpc};
+use crate::{bitcoin, cli, beldex, rpc};
 use ::bitcoin::Txid;
 use anyhow::{bail, Context as AnyContext, Result};
 use libp2p::core::Multiaddr;
@@ -38,31 +38,31 @@ pub trait Request {
     async fn request(self, ctx: Arc<Context>) -> Result<Self::Response>;
 }
 
-// BuyXmr
+// BuyBeldex
 #[typeshare]
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct BuyXmrArgs {
+pub struct BuyBeldexArgs {
     #[typeshare(serialized_as = "string")]
     pub seller: Multiaddr,
     #[typeshare(serialized_as = "string")]
     pub bitcoin_change_address: bitcoin::Address,
     #[typeshare(serialized_as = "string")]
-    pub monero_receive_address: monero::Address,
+    pub beldex_receive_address: beldex::Address,
 }
 
 #[typeshare]
 #[derive(Serialize, Deserialize, Debug)]
-pub struct BuyXmrResponse {
+pub struct BuyBeldexResponse {
     #[typeshare(serialized_as = "string")]
     pub swap_id: Uuid,
     pub quote: BidQuote,
 }
 
-impl Request for BuyXmrArgs {
-    type Response = BuyXmrResponse;
+impl Request for BuyBeldexArgs {
+    type Response = BuyBeldexResponse;
 
     async fn request(self, ctx: Arc<Context>) -> Result<Self::Response> {
-        buy_xmr(self, ctx).await
+        buy_beldex(self, ctx).await
     }
 }
 
@@ -104,19 +104,19 @@ impl Request for CancelAndRefundArgs {
     }
 }
 
-// MoneroRecovery
+// BeldexRecovery
 #[typeshare]
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct MoneroRecoveryArgs {
+pub struct BeldexRecoveryArgs {
     #[typeshare(serialized_as = "string")]
     pub swap_id: Uuid,
 }
 
-impl Request for MoneroRecoveryArgs {
+impl Request for BeldexRecoveryArgs {
     type Response = serde_json::Value;
 
     async fn request(self, ctx: Arc<Context>) -> Result<Self::Response> {
-        monero_recovery(self, ctx).await
+        beldex_recovery(self, ctx).await
     }
 }
 
@@ -199,7 +199,7 @@ pub struct GetSwapInfoResponse {
     #[typeshare(serialized_as = "string")]
     pub state_name: String,
     #[typeshare(serialized_as = "number")]
-    pub xmr_amount: monero::Amount,
+    pub bdx_amount: beldex::Amount,
     #[typeshare(serialized_as = "number")]
     #[serde(with = "::bitcoin::util::amount::serde::as_sat")]
     pub btc_amount: bitcoin::Amount,
@@ -442,7 +442,7 @@ pub async fn get_swap_info(
     let swap_state: BobState = state.try_into()?;
 
     let (
-        xmr_amount,
+        bdx_amount,
         btc_amount,
         tx_lock_id,
         tx_cancel_fee,
@@ -458,7 +458,7 @@ pub async fn get_swap_info(
         .iter()
         .find_map(|state| {
             if let State::Bob(BobState::SwapSetupCompleted(state2)) = state {
-                let xmr_amount = state2.xmr;
+                let bdx_amount = state2.bdx;
                 let btc_amount = state2.tx_lock.lock_amount();
                 let tx_cancel_fee = state2.tx_cancel_fee;
                 let tx_refund_fee = state2.tx_refund_fee;
@@ -467,7 +467,7 @@ pub async fn get_swap_info(
 
                 if let Ok(tx_lock_fee) = state2.tx_lock.fee() {
                     Some((
-                        xmr_amount,
+                        bdx_amount,
                         btc_amount,
                         tx_lock_id,
                         tx_cancel_fee,
@@ -487,21 +487,21 @@ pub async fn get_swap_info(
         .with_context(|| "Did not find SwapSetupCompleted state for swap")?;
 
     let timelock = match swap_state.clone() {
-        BobState::Started { .. } | BobState::SafelyAborted | BobState::SwapSetupCompleted(_) => {
+         BobState::Started { .. } | BobState::SafelyAborted | BobState::SwapSetupCompleted(_) => {
             None
         }
         BobState::BtcLocked { state3: state, .. }
-        | BobState::XmrLockProofReceived { state, .. } => {
+        | BobState::BeldexLockProofReceived { state, .. } => {
             Some(state.expired_timelock(bitcoin_wallet).await?)
         }
-        BobState::XmrLocked(state) | BobState::EncSigSent(state) => {
+        BobState::BeldexLocked(state) | BobState::EncSigSent(state) => {
             Some(state.expired_timelock(bitcoin_wallet).await?)
         }
         BobState::CancelTimelockExpired(state) | BobState::BtcCancelled(state) => {
             Some(state.expired_timelock(bitcoin_wallet).await?)
         }
         BobState::BtcPunished { .. } => Some(ExpiredTimelocks::Punish),
-        BobState::BtcRefunded(_) | BobState::BtcRedeemed(_) | BobState::XmrRedeemed { .. } => None,
+        BobState::BtcRefunded(_) | BobState::BtcRedeemed(_) | BobState::BeldexRedeemed { .. } => None,
     };
 
     Ok(GetSwapInfoResponse {
@@ -513,7 +513,7 @@ pub async fn get_swap_info(
         completed: is_completed,
         start_date,
         state_name: format!("{}", swap_state),
-        xmr_amount,
+        bdx_amount,
         btc_amount,
         tx_lock_id,
         tx_cancel_fee,
@@ -526,16 +526,16 @@ pub async fn get_swap_info(
     })
 }
 
-#[tracing::instrument(fields(method = "buy_xmr"), skip(context))]
-pub async fn buy_xmr(
-    buy_xmr: BuyXmrArgs,
+#[tracing::instrument(fields(method = "buy_beldex"), skip(context))]
+pub async fn buy_beldex(
+    buy_beldex: BuyBeldexArgs,
     context: Arc<Context>,
-) -> Result<BuyXmrResponse, anyhow::Error> {
-    let BuyXmrArgs {
+) -> Result<BuyBeldexResponse, anyhow::Error> {
+    let BuyBeldexArgs {
         seller,
         bitcoin_change_address,
-        monero_receive_address,
-    } = buy_xmr;
+        beldex_receive_address,
+    } = buy_beldex;
 
     let swap_id = Uuid::new_v4();
 
@@ -545,11 +545,11 @@ pub async fn buy_xmr(
             .as_ref()
             .expect("Could not find Bitcoin wallet"),
     );
-    let monero_wallet = Arc::clone(
+    let beldex_wallet = Arc::clone(
         context
-            .monero_wallet
+            .beldex_wallet
             .as_ref()
-            .context("Could not get Monero wallet")?,
+            .context("Could not get Beldex wallet")?,
     );
     let env_config = context.config.env_config;
     let seed = context.config.seed.clone().context("Could not get seed")?;
@@ -579,7 +579,7 @@ pub async fn buy_xmr(
 
     context
         .db
-        .insert_monero_address(swap_id, monero_receive_address)
+        .insert_beldex_address(swap_id, beldex_receive_address)
         .await?;
 
     tracing::debug!(peer_id = %swarm.local_peer_id(), "Network layer initialized");
@@ -672,7 +672,7 @@ pub async fn buy_xmr(
                     Ok(val) => val,
                     Err(error) => match error.downcast::<ZeroQuoteReceived>() {
                         Ok(_) => {
-                            bail!("Seller's XMR balance is currently too low to initiate a swap, please try again later")
+                            bail!("Seller's Beldex balance is currently too low to initiate a swap, please try again later")
                         }
                         Err(other) => bail!(other),
                     },
@@ -686,10 +686,10 @@ pub async fn buy_xmr(
                     Arc::clone(&context.db),
                     swap_id,
                     Arc::clone(&bitcoin_wallet),
-                    monero_wallet,
+                    beldex_wallet,
                     env_config,
                     event_loop_handle,
-                    monero_receive_address,
+                    beldex_receive_address,
                     bitcoin_change_address,
                     amount,
                 ).with_event_emitter(context.tauri_handle.clone());
@@ -719,7 +719,7 @@ pub async fn buy_xmr(
         Ok::<_, anyhow::Error>(())
     }.in_current_span()).await;
 
-    Ok(BuyXmrResponse {
+    Ok(BuyBeldexResponse {
         swap_id,
         quote: bid_quote,
     })
@@ -767,7 +767,7 @@ pub async fn resume_swap(
 
     let (event_loop, event_loop_handle) =
         EventLoop::new(swap_id, swarm, seller_peer_id, context.db.clone())?;
-    let monero_receive_address = context.db.get_monero_address(swap_id).await?;
+    let beldex_receive_address = context.db.get_beldex_address(swap_id).await?;
     let swap = Swap::from_db(
         Arc::clone(&context.db),
         swap_id,
@@ -779,13 +779,13 @@ pub async fn resume_swap(
         ),
         Arc::clone(
             context
-                .monero_wallet
+                .beldex_wallet
                 .as_ref()
-                .context("Could not get Monero wallet")?,
+                .context("Could not get Beldex wallet")?,
         ),
         context.config.env_config,
         event_loop_handle,
-        monero_receive_address,
+        beldex_receive_address,
     )
     .await?
     .with_event_emitter(context.tauri_handle.clone());
@@ -899,14 +899,14 @@ pub async fn get_config(context: Arc<Context>) -> Result<serde_json::Value> {
     tracing::info!(path=%format!("{}/logs", data_dir_display), "Log files directory");
     tracing::info!(path=%format!("{}/sqlite", data_dir_display), "Sqlite file location");
     tracing::info!(path=%format!("{}/seed.pem", data_dir_display), "Seed file location");
-    tracing::info!(path=%format!("{}/monero", data_dir_display), "Monero-wallet-rpc directory");
+    tracing::info!(path=%format!("{}/beldex", data_dir_display), "Beldex-wallet-rpc directory");
     tracing::info!(path=%format!("{}/wallet", data_dir_display), "Internal bitcoin wallet directory");
 
     Ok(json!({
         "log_files": format!("{}/logs", data_dir_display),
         "sqlite": format!("{}/sqlite", data_dir_display),
         "seed": format!("{}/seed.pem", data_dir_display),
-        "monero-wallet-rpc": format!("{}/monero", data_dir_display),
+        "beldex-wallet-rpc": format!("{}/beldex", data_dir_display),
         "bitcoin_wallet": format!("{}/wallet", data_dir_display),
     }))
 }
@@ -1061,35 +1061,35 @@ pub async fn export_bitcoin_wallet(context: Arc<Context>) -> Result<serde_json::
     }))
 }
 
-#[tracing::instrument(fields(method = "monero_recovery"), skip(context))]
-pub async fn monero_recovery(
-    monero_recovery: MoneroRecoveryArgs,
+#[tracing::instrument(fields(method = "beldex_recovery"), skip(context))]
+pub async fn beldex_recovery(
+    beldex_recovery: BeldexRecoveryArgs,
     context: Arc<Context>,
 ) -> Result<serde_json::Value> {
-    let MoneroRecoveryArgs { swap_id } = monero_recovery;
+    let BeldexRecoveryArgs { swap_id } = beldex_recovery;
     let swap_state: BobState = context.db.get_state(swap_id).await?.try_into()?;
 
     if let BobState::BtcRedeemed(state5) = swap_state {
-        let (spend_key, view_key) = state5.xmr_keys();
-        let restore_height = state5.monero_wallet_restore_blockheight.height;
+        let (spend_key, view_key) = state5.bdx_keys();
+        let restore_height = state5.beldex_wallet_restore_blockheight.height;
 
-        let address = monero::Address::standard(
-            context.config.env_config.monero_network,
-            monero::PublicKey::from_private_key(&spend_key),
-            monero::PublicKey::from(view_key.public()),
+        let address = beldex::Address::standard(
+            context.config.env_config.beldex_network,
+            beldex::PublicKey::from_private_key(&spend_key),
+            beldex::PublicKey::from(view_key.public()),
         );
 
-        tracing::info!(restore_height=%restore_height, address=%address, spend_key=%spend_key, view_key=%view_key, "Monero recovery information");
+        tracing::info!(restore_height=%restore_height, address=%address, spend_key=%spend_key, view_key=%view_key, "Beldex recovery information");
 
         Ok(json!({
             "address": address,
             "spend_key": spend_key.to_string(),
             "view_key": view_key.to_string(),
-            "restore_height": state5.monero_wallet_restore_blockheight.height,
+            "restore_height": state5.beldex_wallet_restore_blockheight.height,
         }))
     } else {
         bail!(
-            "Cannot print monero recovery information in state {}, only possible for BtcRedeemed",
+            "Cannot print beldex recovery information in state {}, only possible for BtcRedeemed",
             swap_state
         )
     }

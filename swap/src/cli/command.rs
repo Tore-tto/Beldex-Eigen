@@ -1,12 +1,12 @@
+use crate::beldex;
+use crate::beldex::beldex_address;
 use crate::bitcoin::{bitcoin_address, Amount};
 use crate::cli::api::request::{
-    BalanceArgs, BuyXmrArgs, CancelAndRefundArgs, ExportBitcoinWalletArgs, GetConfigArgs,
-    GetHistoryArgs, ListSellersArgs, MoneroRecoveryArgs, Request, ResumeSwapArgs, StartDaemonArgs,
+    BalanceArgs, BeldexRecoveryArgs, BuyBeldexArgs, CancelAndRefundArgs, ExportBitcoinWalletArgs,
+    GetConfigArgs, GetHistoryArgs, ListSellersArgs, Request, ResumeSwapArgs, StartDaemonArgs,
     WithdrawBtcArgs,
 };
 use crate::cli::api::Context;
-use crate::monero;
-use crate::monero::monero_address;
 use anyhow::Result;
 use libp2p::core::Multiaddr;
 use std::ffi::OsString;
@@ -21,14 +21,15 @@ use uuid::Uuid;
 use super::api::request::GetLogsArgs;
 use super::api::ContextBuilder;
 
-// See: https://moneroworld.com/
-pub const DEFAULT_MONERO_DAEMON_ADDRESS: &str = "node.community.rino.io:18081";
-pub const DEFAULT_MONERO_DAEMON_ADDRESS_STAGENET: &str = "stagenet.community.rino.io:38081";
+// See: https://beldexworld.com/
+pub const DEFAULT_BELDEX_DAEMON_ADDRESS: &str = "http://127.0.0.1:29091";
+pub const DEFAULT_BELDEX_DAEMON_ADDRESS_STAGENET: &str = "http://127.0.0.1:29091";
 
 // See: https://1209k.com/bitcoin-eye/ele.php?chain=btc
 const DEFAULT_ELECTRUM_RPC_URL: &str = "ssl://blockstream.info:700";
 // See: https://1209k.com/bitcoin-eye/ele.php?chain=tbtc
-pub const DEFAULT_ELECTRUM_RPC_URL_TESTNET: &str = "ssl://testnet.foundation.xyz:50002";
+pub const DEFAULT_ELECTRUM_RPC_URL_TESTNET: &str = "ssl://electrum.blockstream.info:60002";
+pub const DEFAULT_ELECTRUM_HTTP_URL_TESTNET: &str = "https://blockstream.info/testnet/api/";
 
 const DEFAULT_BITCOIN_CONFIRMATION_TARGET: usize = 1;
 pub const DEFAULT_BITCOIN_CONFIRMATION_TARGET_TESTNET: usize = 1;
@@ -68,23 +69,23 @@ where
     let is_testnet = args.testnet;
     let data = args.data;
     let result: Result<Arc<Context>> = match args.cmd {
-        CliCommand::BuyXmr {
+        CliCommand::BuyBeldex {
             seller: Seller { seller },
             bitcoin,
             bitcoin_change_address,
-            monero,
-            monero_receive_address,
+            beldex,
+            beldex_receive_address,
             tor,
         } => {
-            let monero_receive_address =
-                monero_address::validate_is_testnet(monero_receive_address, is_testnet)?;
+            let beldex_receive_address =
+                beldex_address::validate_is_testnet(beldex_receive_address, is_testnet)?;
             let bitcoin_change_address =
                 bitcoin_address::validate_is_testnet(bitcoin_change_address, is_testnet)?;
 
             let context = Arc::new(
                 ContextBuilder::new(is_testnet)
                     .with_bitcoin(bitcoin)
-                    .with_monero(monero)
+                    .with_beldex(beldex)
                     .with_tor(tor)
                     .with_data_dir(data)
                     .with_debug(debug)
@@ -93,10 +94,10 @@ where
                     .await?,
             );
 
-            BuyXmrArgs {
+            BuyBeldexArgs {
                 seller,
                 bitcoin_change_address,
-                monero_receive_address,
+                beldex_receive_address,
             }
             .request(context.clone())
             .await?;
@@ -177,13 +178,13 @@ where
         CliCommand::StartDaemon {
             server_address,
             bitcoin,
-            monero,
+            beldex,
             tor,
         } => {
             let context = Arc::new(
                 ContextBuilder::new(is_testnet)
                     .with_bitcoin(bitcoin)
-                    .with_monero(monero)
+                    .with_beldex(beldex)
                     .with_tor(tor)
                     .with_data_dir(data)
                     .with_debug(debug)
@@ -224,13 +225,13 @@ where
         CliCommand::Resume {
             swap_id: SwapId { swap_id },
             bitcoin,
-            monero,
+            beldex,
             tor,
         } => {
             let context = Arc::new(
                 ContextBuilder::new(is_testnet)
                     .with_bitcoin(bitcoin)
-                    .with_monero(monero)
+                    .with_beldex(beldex)
                     .with_tor(tor)
                     .with_data_dir(data)
                     .with_debug(debug)
@@ -300,7 +301,7 @@ where
 
             Ok(context)
         }
-        CliCommand::MoneroRecovery {
+        CliCommand::BeldexRecovery {
             swap_id: SwapId { swap_id },
         } => {
             let context = Arc::new(
@@ -312,7 +313,7 @@ where
                     .await?,
             );
 
-            MoneroRecoveryArgs { swap_id }
+            BeldexRecoveryArgs { swap_id }
                 .request(context.clone())
                 .await?;
 
@@ -326,7 +327,7 @@ where
 #[derive(structopt::StructOpt, Debug)]
 #[structopt(
     name = "swap",
-    about = "CLI for swapping BTC for XMR",
+    about = "CLI for swapping BTC for BDX",
     author,
     version = env!("VERGEN_GIT_DESCRIBE")
 )]
@@ -362,8 +363,8 @@ struct Arguments {
 
 #[derive(structopt::StructOpt, Debug)]
 enum CliCommand {
-    /// Start a BTC for XMR swap
-    BuyXmr {
+    /// Start a BTC for BDX swap
+    BuyBeldex {
         #[structopt(flatten)]
         seller: Seller,
 
@@ -378,13 +379,13 @@ enum CliCommand {
         bitcoin_change_address: bitcoin::Address,
 
         #[structopt(flatten)]
-        monero: Monero,
+        beldex: Beldex,
 
         #[structopt(long = "receive-address",
-            help = "The monero address where you would like to receive monero",
-            parse(try_from_str = monero_address::parse)
+            help = "The beldex address where you would like to receive beldex",
+            parse(try_from_str = beldex_address::parse)
         )]
-        monero_receive_address: monero::Address,
+        beldex_receive_address: beldex::Address,
 
         #[structopt(flatten)]
         tor: Tor,
@@ -399,7 +400,7 @@ enum CliCommand {
         )]
         logs_dir: Option<PathBuf>,
         #[structopt(
-            help = "Redact swap-ids, Bitcoin and Monero addresses.",
+            help = "Redact swap-ids, Bitcoin and Beldex addresses.",
             long = "redact"
         )]
         redact: bool,
@@ -440,7 +441,7 @@ enum CliCommand {
         bitcoin: Bitcoin,
 
         #[structopt(flatten)]
-        monero: Monero,
+        beldex: Beldex,
 
         #[structopt(
             long = "server-address",
@@ -460,7 +461,7 @@ enum CliCommand {
         bitcoin: Bitcoin,
 
         #[structopt(flatten)]
-        monero: Monero,
+        beldex: Beldex,
 
         #[structopt(flatten)]
         tor: Tor,
@@ -493,32 +494,32 @@ enum CliCommand {
         #[structopt(flatten)]
         bitcoin: Bitcoin,
     },
-    /// Prints Monero information related to the swap in case the generated
+    /// Prints Beldex information related to the swap in case the generated
     /// wallet fails to detect the funds. This can only be used for swaps
     /// that are in a `btc is redeemed` state.
-    MoneroRecovery {
+    BeldexRecovery {
         #[structopt(flatten)]
         swap_id: SwapId,
     },
 }
 
 #[derive(structopt::StructOpt, Debug)]
-pub struct Monero {
+pub struct Beldex {
     #[structopt(
-        long = "monero-daemon-address",
-        help = "Specify to connect to a monero daemon of your choice: <host>:<port>"
+        long = "beldex-daemon-address",
+        help = "Specify to connect to a beldex daemon of your choice: <host>:<port>"
     )]
-    pub monero_daemon_address: Option<String>,
+    pub beldex_daemon_address: Option<String>,
 }
 
-impl Monero {
+impl Beldex {
     pub fn apply_defaults(self, testnet: bool) -> String {
-        if let Some(address) = self.monero_daemon_address {
+        if let Some(address) = self.beldex_daemon_address {
             address
         } else if testnet {
-            DEFAULT_MONERO_DAEMON_ADDRESS_STAGENET.to_string()
+            DEFAULT_BELDEX_DAEMON_ADDRESS_STAGENET.to_string()
         } else {
-            DEFAULT_MONERO_DAEMON_ADDRESS.to_string()
+            DEFAULT_BELDEX_DAEMON_ADDRESS.to_string()
         }
     }
 }
@@ -598,7 +599,7 @@ mod tests {
 
     use crate::cli::api::api_test::*;
     use crate::cli::api::Config;
-    use crate::monero::monero_address::MoneroAddressNetworkMismatch;
+    use crate::beldex::beldex_address::BeldexAddressNetworkMismatch;
 
     const BINARY_NAME: &str = "swap";
     const ARGS_DATA_DIR: &str = "/tmp/dir/";
@@ -606,13 +607,13 @@ mod tests {
     TODO: This test doesn't work anymore since the Request struct has been removed. We need to find another way to test the CLI arguments.
     #[tokio::test]
     async fn test_cli_arguments() {
-        // given_buy_xmr_on_mainnet_then_defaults_to_mainnet
+        // given_buy_bdx_on_mainnet_then_defaults_to_mainnet
 
         let raw_ars = vec![
             BINARY_NAME,
-            "buy-xmr",
+            "buy-bdx",
             "--receive-address",
-            MONERO_MAINNET_ADDRESS,
+            BELDEX_MAINNET_ADDRESS,
             "--change-address",
             BITCOIN_MAINNET_ADDRESS,
             "--seller",
@@ -629,16 +630,16 @@ mod tests {
 
         let (expected_config, mut expected_request) = (
             Config::default(is_testnet, None, debug, json),
-            Request::buy_xmr(is_testnet),
+            Request::buy_bdx(is_testnet),
         );
 
         // since Uuid is random, copy before comparing requests
-        if let Method::BuyXmr {
+        if let Method::BuyBeldex {
             ref mut swap_id, ..
         } = expected_request.cmd
         {
             *swap_id = match actual_request.cmd {
-                Method::BuyXmr { swap_id, .. } => swap_id,
+                Method::BuyBeldex { swap_id, .. } => swap_id,
                 _ => panic!("Not the Method we expected"),
             }
         };
@@ -646,13 +647,13 @@ mod tests {
         assert_eq!(actual_config, expected_config);
         assert_eq!(actual_request, Box::new(expected_request));
 
-        // given_buy_xmr_on_testnet_then_defaults_to_testnet
+        // given_buy_bdx_on_testnet_then_defaults_to_testnet
         let raw_ars = vec![
             BINARY_NAME,
             "--testnet",
-            "buy-xmr",
+            "buy-bdx",
             "--receive-address",
-            MONERO_STAGENET_ADDRESS,
+            BELDEX_STAGENET_ADDRESS,
             "--change-address",
             BITCOIN_TESTNET_ADDRESS,
             "--seller",
@@ -664,7 +665,7 @@ mod tests {
 
         let (expected_config, mut expected_request) = (
             Config::default(is_testnet, None, debug, json),
-            Request::buy_xmr(is_testnet),
+            Request::buy_bdx(is_testnet),
         );
 
         let (actual_config, actual_request) = match args {
@@ -672,12 +673,12 @@ mod tests {
             _ => panic!("Couldn't parse result"),
         };
 
-        if let Method::BuyXmr {
+        if let Method::BuyBeldex {
             ref mut swap_id, ..
         } = expected_request.cmd
         {
             *swap_id = match actual_request.cmd {
-                Method::BuyXmr { swap_id, .. } => swap_id,
+                Method::BuyBeldex { swap_id, .. } => swap_id,
                 _ => panic!("Not the Method we expected"),
             }
         };
@@ -685,12 +686,12 @@ mod tests {
         assert_eq!(actual_config, expected_config);
         assert_eq!(actual_request, Box::new(expected_request));
 
-        // given_buy_xmr_on_mainnet_with_testnet_address_then_fails
+        // given_buy_bdx_on_mainnet_with_testnet_address_then_fails
         let raw_ars = vec![
             BINARY_NAME,
-            "buy-xmr",
+            "buy-bdx",
             "--receive-address",
-            MONERO_STAGENET_ADDRESS,
+            BELDEX_STAGENET_ADDRESS,
             "--change-address",
             BITCOIN_TESTNET_ADDRESS,
             "--seller",
@@ -700,20 +701,20 @@ mod tests {
         let err = parse_args_and_apply_defaults(raw_ars).await.unwrap_err();
 
         assert_eq!(
-            err.downcast_ref::<MoneroAddressNetworkMismatch>().unwrap(),
-            &MoneroAddressNetworkMismatch {
-                expected: monero::Network::Mainnet,
-                actual: monero::Network::Stagenet
+            err.downcast_ref::<BeldexAddressNetworkMismatch>().unwrap(),
+            &BeldexAddressNetworkMismatch {
+                expected: beldex::Network::Mainnet,
+                actual: beldex::Network::Stagenet
             }
         );
 
-        // given_buy_xmr_on_testnet_with_mainnet_address_then_fails
+        // given_buy_bdx_on_testnet_with_mainnet_address_then_fails
         let raw_ars = vec![
             BINARY_NAME,
             "--testnet",
-            "buy-xmr",
+            "buy-bdx",
             "--receive-address",
-            MONERO_MAINNET_ADDRESS,
+            BELDEX_MAINNET_ADDRESS,
             "--change-address",
             BITCOIN_MAINNET_ADDRESS,
             "--seller",
@@ -723,10 +724,10 @@ mod tests {
         let err = parse_args_and_apply_defaults(raw_ars).await.unwrap_err();
 
         assert_eq!(
-            err.downcast_ref::<MoneroAddressNetworkMismatch>().unwrap(),
-            &MoneroAddressNetworkMismatch {
-                expected: monero::Network::Stagenet,
-                actual: monero::Network::Mainnet
+            err.downcast_ref::<BeldexAddressNetworkMismatch>().unwrap(),
+            &BeldexAddressNetworkMismatch {
+                expected: beldex::Network::Stagenet,
+                actual: beldex::Network::Mainnet
             }
         );
 
@@ -844,16 +845,16 @@ mod tests {
         assert_eq!(actual_config, expected_config);
         assert_eq!(actual_request, Box::new(expected_request));
 
-        // given_buy_xmr_on_mainnet_with_data_dir_then_data_dir_set
+        // given_buy_bdx_on_mainnet_with_data_dir_then_data_dir_set
         let raw_ars = vec![
             BINARY_NAME,
             "--data-base-dir",
             ARGS_DATA_DIR,
-            "buy-xmr",
+            "buy-bdx",
             "--change-address",
             BITCOIN_MAINNET_ADDRESS,
             "--receive-address",
-            MONERO_MAINNET_ADDRESS,
+            BELDEX_MAINNET_ADDRESS,
             "--seller",
             MULTI_ADDRESS,
         ];
@@ -864,7 +865,7 @@ mod tests {
 
         let (expected_config, mut expected_request) = (
             Config::default(is_testnet, Some(data_dir.clone()), debug, json),
-            Request::buy_xmr(is_testnet),
+            Request::buy_bdx(is_testnet),
         );
 
         let (actual_config, actual_request) = match args {
@@ -872,12 +873,12 @@ mod tests {
             _ => panic!("Couldn't parse result"),
         };
 
-        if let Method::BuyXmr {
+        if let Method::BuyBeldex {
             ref mut swap_id, ..
         } = expected_request.cmd
         {
             *swap_id = match actual_request.cmd {
-                Method::BuyXmr { swap_id, .. } => swap_id,
+                Method::BuyBeldex { swap_id, .. } => swap_id,
                 _ => panic!("Not the Method we expected"),
             }
         };
@@ -885,17 +886,17 @@ mod tests {
         assert_eq!(actual_config, expected_config);
         assert_eq!(actual_request, Box::new(expected_request));
 
-        // given_buy_xmr_on_testnet_with_data_dir_then_data_dir_set
+        // given_buy_bdx_on_testnet_with_data_dir_then_data_dir_set
         let raw_ars = vec![
             BINARY_NAME,
             "--testnet",
             "--data-base-dir",
             ARGS_DATA_DIR,
-            "buy-xmr",
+            "buy-bdx",
             "--change-address",
             BITCOIN_TESTNET_ADDRESS,
             "--receive-address",
-            MONERO_STAGENET_ADDRESS,
+            BELDEX_STAGENET_ADDRESS,
             "--seller",
             MULTI_ADDRESS,
         ];
@@ -906,7 +907,7 @@ mod tests {
 
         let (expected_config, mut expected_request) = (
             Config::default(is_testnet, Some(data_dir.clone()), debug, json),
-            Request::buy_xmr(is_testnet),
+            Request::buy_bdx(is_testnet),
         );
 
         let (actual_config, actual_request) = match args {
@@ -914,12 +915,12 @@ mod tests {
             _ => panic!("Couldn't parse result"),
         };
 
-        if let Method::BuyXmr {
+        if let Method::BuyBeldex {
             ref mut swap_id, ..
         } = expected_request.cmd
         {
             *swap_id = match actual_request.cmd {
-                Method::BuyXmr { swap_id, .. } => swap_id,
+                Method::BuyBeldex { swap_id, .. } => swap_id,
                 _ => panic!("Not the Method we expected"),
             }
         };
@@ -946,12 +947,12 @@ mod tests {
             Request::resume(),
         );
 
-        if let Method::BuyXmr {
+        if let Method::BuyBeldex {
             ref mut swap_id, ..
         } = expected_request.cmd
         {
             *swap_id = match actual_request.cmd {
-                Method::BuyXmr { swap_id, .. } => swap_id,
+                Method::BuyBeldex { swap_id, .. } => swap_id,
                 _ => panic!("Not the Method we expected"),
             }
         };
@@ -992,15 +993,15 @@ mod tests {
         assert_eq!(actual_config, expected_config);
         assert_eq!(actual_request, Box::new(expected_request));
 
-        // given_buy_xmr_on_mainnet_with_debug_then_debug_set
+        // given_buy_bdx_on_mainnet_with_debug_then_debug_set
         let raw_ars = vec![
             BINARY_NAME,
             "--debug",
-            "buy-xmr",
+            "buy-bdx",
             "--change-address",
             BITCOIN_MAINNET_ADDRESS,
             "--receive-address",
-            MONERO_MAINNET_ADDRESS,
+            BELDEX_MAINNET_ADDRESS,
             "--seller",
             MULTI_ADDRESS,
         ];
@@ -1010,7 +1011,7 @@ mod tests {
 
         let (expected_config, mut expected_request) = (
             Config::default(is_testnet, None, debug, json),
-            Request::buy_xmr(is_testnet),
+            Request::buy_bdx(is_testnet),
         );
 
         let (actual_config, actual_request) = match args {
@@ -1018,12 +1019,12 @@ mod tests {
             _ => panic!("Couldn't parse result"),
         };
 
-        if let Method::BuyXmr {
+        if let Method::BuyBeldex {
             ref mut swap_id, ..
         } = expected_request.cmd
         {
             *swap_id = match actual_request.cmd {
-                Method::BuyXmr { swap_id, .. } => swap_id,
+                Method::BuyBeldex { swap_id, .. } => swap_id,
                 _ => panic!("Not the Method we expected"),
             }
         };
@@ -1031,16 +1032,16 @@ mod tests {
         assert_eq!(actual_config, expected_config);
         assert_eq!(actual_request, Box::new(expected_request));
 
-        // given_buy_xmr_on_testnet_with_debug_then_debug_set
+        // given_buy_bdx_on_testnet_with_debug_then_debug_set
         let raw_ars = vec![
             BINARY_NAME,
             "--testnet",
             "--debug",
-            "buy-xmr",
+            "buy-bdx",
             "--change-address",
             BITCOIN_TESTNET_ADDRESS,
             "--receive-address",
-            MONERO_STAGENET_ADDRESS,
+            BELDEX_STAGENET_ADDRESS,
             "--seller",
             MULTI_ADDRESS,
         ];
@@ -1050,7 +1051,7 @@ mod tests {
 
         let (expected_config, mut expected_request) = (
             Config::default(is_testnet, None, debug, json),
-            Request::buy_xmr(is_testnet),
+            Request::buy_bdx(is_testnet),
         );
 
         let (actual_config, actual_request) = match args {
@@ -1058,12 +1059,12 @@ mod tests {
             _ => panic!("Couldn't parse result"),
         };
 
-        if let Method::BuyXmr {
+        if let Method::BuyBeldex {
             ref mut swap_id, ..
         } = expected_request.cmd
         {
             *swap_id = match actual_request.cmd {
-                Method::BuyXmr { swap_id, .. } => swap_id,
+                Method::BuyBeldex { swap_id, .. } => swap_id,
                 _ => panic!("Not the Method we expected"),
             }
         };
@@ -1087,12 +1088,12 @@ mod tests {
             _ => panic!("Couldn't parse result"),
         };
 
-        if let Method::BuyXmr {
+        if let Method::BuyBeldex {
             ref mut swap_id, ..
         } = expected_request.cmd
         {
             *swap_id = match actual_request.cmd {
-                Method::BuyXmr { swap_id, .. } => swap_id,
+                Method::BuyBeldex { swap_id, .. } => swap_id,
                 _ => panic!("Not the Method we expected"),
             }
         };
@@ -1122,15 +1123,15 @@ mod tests {
 
         assert_eq!(actual_config, expected_config);
 
-        // given_buy_xmr_on_mainnet_with_json_then_json_set
+        // given_buy_bdx_on_mainnet_with_json_then_json_set
         let raw_ars = vec![
             BINARY_NAME,
             "--json",
-            "buy-xmr",
+            "buy-bdx",
             "--change-address",
             BITCOIN_MAINNET_ADDRESS,
             "--receive-address",
-            MONERO_MAINNET_ADDRESS,
+            BELDEX_MAINNET_ADDRESS,
             "--seller",
             MULTI_ADDRESS,
         ];
@@ -1140,7 +1141,7 @@ mod tests {
 
         let (expected_config, mut expected_request) = (
             Config::default(is_testnet, None, debug, json),
-            Request::buy_xmr(is_testnet),
+            Request::buy_bdx(is_testnet),
         );
 
         let (actual_config, actual_request) = match args {
@@ -1148,12 +1149,12 @@ mod tests {
             _ => panic!("Couldn't parse result"),
         };
 
-        if let Method::BuyXmr {
+        if let Method::BuyBeldex {
             ref mut swap_id, ..
         } = expected_request.cmd
         {
             *swap_id = match actual_request.cmd {
-                Method::BuyXmr { swap_id, .. } => swap_id,
+                Method::BuyBeldex { swap_id, .. } => swap_id,
                 _ => panic!("Not the Method we expected"),
             }
         };
@@ -1161,16 +1162,16 @@ mod tests {
         assert_eq!(actual_config, expected_config);
         assert_eq!(actual_request, Box::new(expected_request));
 
-        // given_buy_xmr_on_testnet_with_json_then_json_set
+        // given_buy_bdx_on_testnet_with_json_then_json_set
         let raw_ars = vec![
             BINARY_NAME,
             "--testnet",
             "--json",
-            "buy-xmr",
+            "buy-bdx",
             "--change-address",
             BITCOIN_TESTNET_ADDRESS,
             "--receive-address",
-            MONERO_STAGENET_ADDRESS,
+            BELDEX_STAGENET_ADDRESS,
             "--seller",
             MULTI_ADDRESS,
         ];
@@ -1179,7 +1180,7 @@ mod tests {
 
         let (expected_config, mut expected_request) = (
             Config::default(is_testnet, None, debug, json),
-            Request::buy_xmr(is_testnet),
+            Request::buy_bdx(is_testnet),
         );
         let args = parse_args_and_apply_defaults(raw_ars).await.unwrap();
 
@@ -1188,12 +1189,12 @@ mod tests {
             _ => panic!("Couldn't parse result"),
         };
 
-        if let Method::BuyXmr {
+        if let Method::BuyBeldex {
             ref mut swap_id, ..
         } = expected_request.cmd
         {
             *swap_id = match actual_request.cmd {
-                Method::BuyXmr { swap_id, .. } => swap_id,
+                Method::BuyBeldex { swap_id, .. } => swap_id,
                 _ => panic!("Not the Method we expected"),
             }
         };
@@ -1248,11 +1249,11 @@ mod tests {
         // only_bech32_addresses_mainnet_are_allowed
         let raw_ars = vec![
             BINARY_NAME,
-            "buy-xmr",
+            "buy-bdx",
             "--change-address",
             "1A5btpLKZjgYm8R22rJAhdbTFVXgSRA2Mp",
             "--receive-address",
-            MONERO_MAINNET_ADDRESS,
+            BELDEX_MAINNET_ADDRESS,
             "--seller",
             MULTI_ADDRESS,
         ];
@@ -1260,11 +1261,11 @@ mod tests {
 
         let raw_ars = vec![
             BINARY_NAME,
-            "buy-xmr",
+            "buy-bdx",
             "--change-address",
             "36vn4mFhmTXn7YcNwELFPxTXhjorw2ppu2",
             "--receive-address",
-            MONERO_MAINNET_ADDRESS,
+            BELDEX_MAINNET_ADDRESS,
             "--seller",
             MULTI_ADDRESS,
         ];
@@ -1272,11 +1273,11 @@ mod tests {
 
         let raw_ars = vec![
             BINARY_NAME,
-            "buy-xmr",
+            "buy-bdx",
             "--change-address",
             "bc1qh4zjxrqe3trzg7s6m7y67q2jzrw3ru5mx3z7j3",
             "--receive-address",
-            MONERO_MAINNET_ADDRESS,
+            BELDEX_MAINNET_ADDRESS,
             "--seller",
             MULTI_ADDRESS,
         ];
@@ -1287,11 +1288,11 @@ mod tests {
         let raw_ars = vec![
             BINARY_NAME,
             "--testnet",
-            "buy-xmr",
+            "buy-bdx",
             "--change-address",
             "n2czxyeFCQp9e8WRyGpy4oL4YfQAeKkkUH",
             "--receive-address",
-            MONERO_STAGENET_ADDRESS,
+            BELDEX_STAGENET_ADDRESS,
             "--seller",
             MULTI_ADDRESS,
         ];
@@ -1300,11 +1301,11 @@ mod tests {
         let raw_ars = vec![
             BINARY_NAME,
             "--testnet",
-            "buy-xmr",
+            "buy-bdx",
             "--change-address",
             "2ND9a4xmQG89qEWG3ETRuytjKpLmGrW7Jvf",
             "--receive-address",
-            MONERO_STAGENET_ADDRESS,
+            BELDEX_STAGENET_ADDRESS,
             "--seller",
             MULTI_ADDRESS,
         ];
@@ -1313,11 +1314,11 @@ mod tests {
         let raw_ars = vec![
             BINARY_NAME,
             "--testnet",
-            "buy-xmr",
+            "buy-bdx",
             "--change-address",
             "tb1q958vfh3wkdp232pktq8zzvmttyxeqnj80zkz3v",
             "--receive-address",
-            MONERO_STAGENET_ADDRESS,
+            BELDEX_STAGENET_ADDRESS,
             "--seller",
             MULTI_ADDRESS,
         ];

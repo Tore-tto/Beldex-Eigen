@@ -1,6 +1,6 @@
 use crate::asb::{LatestRate, RendezvousNode};
 use crate::libp2p_ext::MultiAddrExt;
-use crate::network::rendezvous::XmrBtcNamespace;
+use crate::network::rendezvous::BeldexBtcNamespace;
 use crate::seed::Seed;
 use crate::{asb, bitcoin, cli, env, tor};
 use anyhow::Result;
@@ -16,7 +16,7 @@ pub fn asb<LR>(
     latest_rate: LR,
     resume_only: bool,
     env_config: env::Config,
-    namespace: XmrBtcNamespace,
+    namespace: BeldexBtcNamespace,
     rendezvous_addrs: &[Multiaddr],
 ) -> Result<Swarm<asb::Behaviour<LR>>>
 where

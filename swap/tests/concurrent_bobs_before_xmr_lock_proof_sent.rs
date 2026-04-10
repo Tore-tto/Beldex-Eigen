@@ -8,7 +8,7 @@ use swap::protocol::bob::BobState;
 use swap::protocol::{alice, bob};
 
 #[tokio::test]
-async fn concurrent_bobs_before_xmr_lock_proof_sent() {
+async fn concurrent_bobs_before_bdx_lock_proof_sent() {
     harness::setup_test(SlowCancelConfig, |mut ctx| async move {
         let (bob_swap_1, bob_join_handle_1) = ctx.bob_swap().await;
 
@@ -35,7 +35,7 @@ async fn concurrent_bobs_before_xmr_lock_proof_sent() {
         // scenario, but will receive an "unwanted" transfer proof that is buffered until the 1st swap is resumed
 
         let bob_state_2 = bob_swap_2.await??;
-        assert!(matches!(bob_state_2, BobState::XmrRedeemed { .. }));
+        assert!(matches!(bob_state_2, BobState::BeldexRedeemed { .. }));
 
         let alice_state_2 = alice_swap_2.await??;
         assert!(matches!(alice_state_2, AliceState::BtcRedeemed { .. }));
@@ -48,7 +48,7 @@ async fn concurrent_bobs_before_xmr_lock_proof_sent() {
         // The 1st (paused) swap is expected to finish successfully because the transfer proof is buffered when it is receives while another swap is running.
 
         let bob_state_1 = bob::run(bob_swap_1).await?;
-        assert!(matches!(bob_state_1, BobState::XmrRedeemed { .. }));
+        assert!(matches!(bob_state_1, BobState::BeldexRedeemed { .. }));
 
         let alice_state_1 = alice_swap_1.await??;
         assert!(matches!(alice_state_1, AliceState::BtcRedeemed { .. }));

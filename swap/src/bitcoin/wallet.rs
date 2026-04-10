@@ -85,7 +85,7 @@ impl Wallet {
     /// Create a new database for the wallet and rename the old one.
     /// This is necessary when getting a ChecksumMismatch from a wallet
     /// created with an older version of BDK. Only affected Testnet wallets.
-    // https://github.com/comit-network/xmr-btc-swap/issues/1182
+    // https://github.com/comit-network/bdx-btc-swap/issues/1182
     fn migrate(
         data_dir: &Path,
         xprivkey: ExtendedPrivKey,

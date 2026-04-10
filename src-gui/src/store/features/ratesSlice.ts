@@ -2,12 +2,12 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export interface RatesState {
   btcPrice: number | null;
-  xmrPrice: number | null;
+  bdxPrice: number | null;
 }
 
 const initialState: RatesState = {
   btcPrice: null,
-  xmrPrice: null,
+  bdxPrice: null,
 };
 
 const ratesSlice = createSlice({
@@ -17,12 +17,12 @@ const ratesSlice = createSlice({
     setBtcPrice: (state, action: PayloadAction<number>) => {
       state.btcPrice = action.payload;
     },
-    setXmrPrice: (state, action: PayloadAction<number>) => {
-      state.xmrPrice = action.payload;
+    setBeldexPrice: (state, action: PayloadAction<number>) => {
+      state.bdxPrice = action.payload;
     },
   },
 });
 
-export const { setBtcPrice, setXmrPrice } = ratesSlice.actions;
+export const { setBtcPrice, setBeldexPrice } = ratesSlice.actions;
 
 export default ratesSlice.reducer;

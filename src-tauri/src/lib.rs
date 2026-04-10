@@ -3,13 +3,13 @@ use std::sync::Arc;
 use swap::cli::{
     api::{
         request::{
-            BalanceArgs, BuyXmrArgs, GetHistoryArgs, GetSwapInfosAllArgs, MoneroRecoveryArgs,
+            BalanceArgs, BuyBeldexArgs, GetHistoryArgs, GetSwapInfosAllArgs, BeldexRecoveryArgs,
             ResumeSwapArgs, SuspendCurrentSwapArgs, WithdrawBtcArgs,
         },
         tauri_bindings::{TauriContextStatusEvent, TauriEmitter, TauriHandle},
         Context, ContextBuilder,
     },
-    command::{Bitcoin, Monero},
+    command::{Bitcoin, Beldex},
 };
 use tauri::{async_runtime::RwLock, Manager, RunEvent};
 
@@ -125,8 +125,8 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 bitcoin_electrum_rpc_url: None,
                 bitcoin_target_block: None,
             })
-            .with_monero(Monero {
-                monero_daemon_address: None,
+            .with_beldex(Beldex {
+                beldex_daemon_address: None,
             })
             .with_json(false)
             .with_debug(true)
@@ -164,10 +164,10 @@ pub fn run() {
             get_balance,
             get_swap_infos_all,
             withdraw_btc,
-            buy_xmr,
+            buy_beldex,
             resume_swap,
             get_history,
-            monero_recovery,
+            beldex_recovery,
             suspend_current_swap,
             is_context_available,
         ])
@@ -177,7 +177,7 @@ pub fn run() {
         .run(|app, event| match event {
             RunEvent::Exit | RunEvent::ExitRequested { .. } => {
                 // Here we cleanup the Context when the application is closed
-                // This is necessary to among other things stop the monero-wallet-rpc process
+                // This is necessary to among other things stop the beldex-wallet-rpc process
                 // If the application is forcibly closed, this may not be called
                 let context = app.state::<RwLock<State>>().inner().try_read();
 
@@ -202,10 +202,10 @@ pub fn run() {
 // The commands are defined using the `tauri_command!` macro.
 // Implementations are handled by the Request trait
 tauri_command!(get_balance, BalanceArgs);
-tauri_command!(buy_xmr, BuyXmrArgs);
+tauri_command!(buy_beldex, BuyBeldexArgs);
 tauri_command!(resume_swap, ResumeSwapArgs);
 tauri_command!(withdraw_btc, WithdrawBtcArgs);
-tauri_command!(monero_recovery, MoneroRecoveryArgs);
+tauri_command!(beldex_recovery, BeldexRecoveryArgs);
 
 // These commands require no arguments
 tauri_command!(suspend_current_swap, SuspendCurrentSwapArgs, no_args);

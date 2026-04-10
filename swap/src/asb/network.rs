@@ -1,12 +1,12 @@
 use crate::asb::event_loop::LatestRate;
 use crate::env;
 use crate::network::quote::BidQuote;
-use crate::network::rendezvous::XmrBtcNamespace;
+use crate::network::rendezvous::BeldexBtcNamespace;
 use crate::network::swap_setup::alice;
 use crate::network::swap_setup::alice::WalletSnapshot;
 use crate::network::transport::authenticate_and_multiplex;
 use crate::network::{
-    cooperative_xmr_redeem_after_punish, encrypted_signature, quote, transfer_proof,
+    cooperative_bdx_redeem_after_punish, encrypted_signature, quote, transfer_proof,
 };
 use crate::protocol::alice::State3;
 use anyhow::{anyhow, Error, Result};
@@ -78,8 +78,8 @@ pub mod behaviour {
             channel: ResponseChannel<()>,
             peer: PeerId,
         },
-        CooperativeXmrRedeemRequested {
-            channel: ResponseChannel<cooperative_xmr_redeem_after_punish::Response>,
+        CooperativeBeldexRedeemRequested {
+            channel: ResponseChannel<cooperative_bdx_redeem_after_punish::Response>,
             swap_id: Uuid,
             peer: PeerId,
         },
@@ -109,7 +109,7 @@ pub mod behaviour {
         }
     }
 
-    /// A `NetworkBehaviour` that represents an XMR/BTC swap node as Alice.
+    /// A `NetworkBehaviour` that represents an BDX/BTC swap node as Alice.
     #[derive(NetworkBehaviour)]
     #[behaviour(out_event = "OutEvent", event_process = false)]
     #[allow(missing_debug_implementations)]
@@ -121,7 +121,7 @@ pub mod behaviour {
         pub quote: quote::Behaviour,
         pub swap_setup: alice::Behaviour<LR>,
         pub transfer_proof: transfer_proof::Behaviour,
-        pub cooperative_xmr_redeem: cooperative_xmr_redeem_after_punish::Behaviour,
+        pub cooperative_bdx_redeem: cooperative_bdx_redeem_after_punish::Behaviour,
         pub encrypted_signature: encrypted_signature::Behaviour,
         pub identify: Identify,
 
@@ -141,12 +141,12 @@ pub mod behaviour {
             latest_rate: LR,
             resume_only: bool,
             env_config: env::Config,
-            identify_params: (identity::Keypair, XmrBtcNamespace),
+            identify_params: (identity::Keypair, BeldexBtcNamespace),
             rendezvous_nodes: Vec<RendezvousNode>,
         ) -> Self {
             let (identity, namespace) = identify_params;
             let agent_version = format!("asb/{} ({})", env!("CARGO_PKG_VERSION"), namespace);
-            let protocol_version = "/comit/xmr/btc/1.0.0".to_string();
+            let protocol_version = "/comit/bdx/btc/1.0.0".to_string();
             let identifyConfig = IdentifyConfig::new(protocol_version, identity.public())
                 .with_agent_version(agent_version);
 
@@ -168,7 +168,7 @@ pub mod behaviour {
                 ),
                 transfer_proof: transfer_proof::alice(),
                 encrypted_signature: encrypted_signature::alice(),
-                cooperative_xmr_redeem: cooperative_xmr_redeem_after_punish::alice(),
+                cooperative_bdx_redeem: cooperative_bdx_redeem_after_punish::alice(),
                 ping: Ping::new(PingConfig::new().with_keep_alive(true)),
                 identify: Identify::new(identifyConfig),
             }
@@ -228,14 +228,14 @@ pub mod rendezvous {
         pub peer_id: PeerId,
         registration_status: RegistrationStatus,
         pub registration_ttl: Option<u64>,
-        pub namespace: XmrBtcNamespace,
+        pub namespace: BeldexBtcNamespace,
     }
 
     impl RendezvousNode {
         pub fn new(
             address: &Multiaddr,
             peer_id: PeerId,
-            namespace: XmrBtcNamespace,
+            namespace: BeldexBtcNamespace,
             registration_ttl: Option<u64>,
         ) -> Self {
             Self {
@@ -441,7 +441,7 @@ pub mod rendezvous {
             let rendezvous_point = RendezvousNode::new(
                 &address,
                 rendezvous_node.local_peer_id().to_owned(),
-                XmrBtcNamespace::Testnet,
+                BeldexBtcNamespace::Testnet,
                 None,
             );
 
@@ -482,7 +482,7 @@ pub mod rendezvous {
             let rendezvous_point = RendezvousNode::new(
                 &address,
                 rendezvous_node.local_peer_id().to_owned(),
-                XmrBtcNamespace::Testnet,
+                BeldexBtcNamespace::Testnet,
                 Some(5),
             );
 
@@ -536,7 +536,7 @@ pub mod rendezvous {
                 rendezvous_nodes.push(RendezvousNode::new(
                     &address,
                     *rendezvous.local_peer_id(),
-                    XmrBtcNamespace::Testnet,
+                    BeldexBtcNamespace::Testnet,
                     registration_ttl,
                 ));
                 tokio::spawn(async move {

@@ -3,15 +3,15 @@ import { SwapSlice } from "models/storeModel";
 import CircularProgressWithSubtitle from "../CircularProgressWithSubtitle";
 import BitcoinPunishedPage from "./done/BitcoinPunishedPage";
 import BitcoinRefundedPage from "./done/BitcoinRefundedPage";
-import XmrRedeemInMempoolPage from "./done/XmrRedeemInMempoolPage";
+import BeldexRedeemInMempoolPage from "./done/BeldexRedeemInMempoolPage";
 import ProcessExitedPage from "./exited/ProcessExitedPage";
 import BitcoinCancelledPage from "./in_progress/BitcoinCancelledPage";
 import BitcoinLockTxInMempoolPage from "./in_progress/BitcoinLockTxInMempoolPage";
 import BitcoinRedeemedPage from "./in_progress/BitcoinRedeemedPage";
 import ReceivedQuotePage from "./in_progress/ReceivedQuotePage";
 import StartedPage from "./in_progress/StartedPage";
-import XmrLockedPage from "./in_progress/XmrLockedPage";
-import XmrLockTxInMempoolPage from "./in_progress/XmrLockInMempoolPage";
+import BeldexLockedPage from "./in_progress/BeldexLockedPage";
+import BeldexLockTxInMempoolPage from "./in_progress/BeldexLockInMempoolPage";
 import InitiatedPage from "./init/InitiatedPage";
 import InitPage from "./init/InitPage";
 import WaitingForBitcoinDepositPage from "./init/WaitingForBitcoinDepositPage";
@@ -23,12 +23,12 @@ export default function SwapStatePage({
 }) {
   // TODO: Reimplement this using tauri events
   /*
-  const isSyncingMoneroWallet = useAppSelector(
-    (state) => state.rpc.state.moneroWallet.isSyncing,
+  const isSyncingBeldexWallet = useAppSelector(
+    (state) => state.rpc.state.beldexWallet.isSyncing,
   );
 
-  if (isSyncingMoneroWallet) {
-    return <SyncingMoneroWalletPage />;
+  if (isSyncingBeldexWallet) {
+    return <SyncingBeldexWalletPage />;
   }
   */
 
@@ -46,14 +46,14 @@ export default function SwapStatePage({
       return <StartedPage {...state.curr.content} />;
     case "BtcLockTxInMempool":
       return <BitcoinLockTxInMempoolPage {...state.curr.content} />;
-    case "XmrLockTxInMempool":
-      return <XmrLockTxInMempoolPage {...state.curr.content} />;
-    case "XmrLocked":
-      return <XmrLockedPage />;
+    case "BeldexLockTxInMempool":
+      return <BeldexLockTxInMempoolPage {...state.curr.content} />;
+    case "BeldexLocked":
+      return <BeldexLockedPage />;
     case "BtcRedeemed":
       return <BitcoinRedeemedPage />;
-    case "XmrRedeemInMempool":
-      return <XmrRedeemInMempoolPage {...state.curr.content} />;
+    case "BeldexRedeemInMempool":
+      return <BeldexRedeemInMempoolPage {...state.curr.content} />;
     case "BtcCancelled":
       return <BitcoinCancelledPage />;
     case "BtcRefunded":
@@ -62,11 +62,11 @@ export default function SwapStatePage({
       return <BitcoinPunishedPage />;
     case "AttemptingCooperativeRedeem":
       return (
-        <CircularProgressWithSubtitle description="Attempting to redeem the Monero with the help of the other party" />
+        <CircularProgressWithSubtitle description="Attempting to redeem the Beldex with the help of the other party" />
       );
     case "CooperativeRedeemAccepted":
       return (
-        <CircularProgressWithSubtitle description="The other party is cooperating with us to redeem the Monero..." />
+        <CircularProgressWithSubtitle description="The other party is cooperating with us to redeem the Beldex..." />
       );
     case "CooperativeRedeemRejected":
       return <BitcoinPunishedPage />;

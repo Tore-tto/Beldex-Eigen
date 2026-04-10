@@ -2,9 +2,9 @@ import { Box, DialogContentText, makeStyles } from "@material-ui/core";
 import PlayArrowIcon from "@material-ui/icons/PlayArrow";
 import { useState } from "react";
 import BitcoinAddressTextField from "renderer/components/inputs/BitcoinAddressTextField";
-import MoneroAddressTextField from "renderer/components/inputs/MoneroAddressTextField";
+import BeldexAddressTextField from "renderer/components/inputs/BeldexAddressTextField";
 import PromiseInvokeButton from "renderer/components/PromiseInvokeButton";
-import { buyXmr } from "renderer/rpc";
+import { buyBeldex } from "renderer/rpc";
 import { useAppSelector } from "store/hooks";
 import RemainingFundsWillBeUsedAlert from "../../../../alert/RemainingFundsWillBeUsedAlert";
 
@@ -30,25 +30,25 @@ export default function InitPage() {
   );
 
   async function init() {
-    await buyXmr(selectedProvider, refundAddress, redeemAddress);
+    await buyBeldex(selectedProvider, refundAddress, redeemAddress);
   }
 
   return (
     <Box>
       <RemainingFundsWillBeUsedAlert />
       <DialogContentText>
-        Please specify the address to which the Monero should be sent upon
+        Please specify the address to which the Beldex should be sent upon
         completion of the swap and the address for receiving a Bitcoin refund if
         the swap fails.
       </DialogContentText>
 
       <Box className={classes.fieldsOuter}>
-        <MoneroAddressTextField
-          label="Monero redeem address"
+        <BeldexAddressTextField
+          label="Beldex redeem address"
           address={redeemAddress}
           onAddressChange={setRedeemAddress}
           onAddressValidityChange={setRedeemAddressValid}
-          helperText="The monero will be sent to this address"
+          helperText="The beldex will be sent to this address"
           fullWidth
         />
 

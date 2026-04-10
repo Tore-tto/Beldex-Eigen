@@ -1,10 +1,10 @@
-use crate::monero::Scalar;
-use crate::network::cooperative_xmr_redeem_after_punish::CooperativeXmrRedeemRejectReason;
+use crate::beldex::Scalar;
+use crate::network::cooperative_bdx_redeem_after_punish::CooperativeBeldexRedeemRejectReason;
 use crate::network::quote::BidQuote;
-use crate::network::rendezvous::XmrBtcNamespace;
+use crate::network::rendezvous::BeldexBtcNamespace;
 use crate::network::swap_setup::bob;
 use crate::network::{
-    cooperative_xmr_redeem_after_punish, encrypted_signature, quote, redial, transfer_proof,
+    cooperative_bdx_redeem_after_punish, encrypted_signature, quote, redial, transfer_proof,
 };
 use crate::protocol::bob::State2;
 use crate::{bitcoin, env};
@@ -32,14 +32,14 @@ pub enum OutEvent {
     EncryptedSignatureAcknowledged {
         id: RequestId,
     },
-    CooperativeXmrRedeemFulfilled {
+    CooperativeBeldexRedeemFulfilled {
         id: RequestId,
         s_a: Scalar,
         swap_id: uuid::Uuid,
     },
-    CooperativeXmrRedeemRejected {
+    CooperativeBeldexRedeemRejected {
         id: RequestId,
-        reason: CooperativeXmrRedeemRejectReason,
+        reason: CooperativeBeldexRedeemRejectReason,
         swap_id: uuid::Uuid,
     },
     AllRedialAttemptsExhausted {
@@ -70,7 +70,7 @@ impl OutEvent {
     }
 }
 
-/// A `NetworkBehaviour` that represents an XMR/BTC swap node as Bob.
+/// A `NetworkBehaviour` that represents an BDX/BTC swap node as Bob.
 #[derive(NetworkBehaviour)]
 #[behaviour(out_event = "OutEvent", event_process = false)]
 #[allow(missing_debug_implementations)]
@@ -78,7 +78,7 @@ pub struct Behaviour {
     pub quote: quote::Behaviour,
     pub swap_setup: bob::Behaviour,
     pub transfer_proof: transfer_proof::Behaviour,
-    pub cooperative_xmr_redeem: cooperative_xmr_redeem_after_punish::Behaviour,
+    pub cooperative_bdx_redeem: cooperative_bdx_redeem_after_punish::Behaviour,
     pub encrypted_signature: encrypted_signature::Behaviour,
     pub redial: redial::Behaviour,
     pub identify: Identify,
@@ -94,10 +94,10 @@ impl Behaviour {
         alice: PeerId,
         env_config: env::Config,
         bitcoin_wallet: Arc<bitcoin::Wallet>,
-        identify_params: (identity::Keypair, XmrBtcNamespace),
+        identify_params: (identity::Keypair, BeldexBtcNamespace),
     ) -> Self {
         let agentVersion = format!("cli/{} ({})", env!("CARGO_PKG_VERSION"), identify_params.1);
-        let protocolVersion = "/comit/xmr/btc/1.0.0".to_string();
+        let protocolVersion = "/comit/bdx/btc/1.0.0".to_string();
         let identifyConfig = IdentifyConfig::new(protocolVersion, identify_params.0.public())
             .with_agent_version(agentVersion);
 
@@ -106,7 +106,7 @@ impl Behaviour {
             swap_setup: bob::Behaviour::new(env_config, bitcoin_wallet),
             transfer_proof: transfer_proof::bob(),
             encrypted_signature: encrypted_signature::bob(),
-            cooperative_xmr_redeem: cooperative_xmr_redeem_after_punish::bob(),
+            cooperative_bdx_redeem: cooperative_bdx_redeem_after_punish::bob(),
             redial: redial::Behaviour::new(alice, Duration::from_secs(2)),
             ping: Ping::new(PingConfig::new().with_keep_alive(true)),
             identify: Identify::new(identifyConfig),

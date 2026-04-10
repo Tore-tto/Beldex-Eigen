@@ -15,7 +15,7 @@ import {
   SwapCancelRefundButton,
   SwapResumeButton,
 } from "../pages/history/table/HistoryRowActions";
-import { SwapMoneroRecoveryButton } from "../pages/history/table/SwapMoneroRecoveryButton";
+import { SwapBeldexRecoveryButton } from "../pages/history/table/SwapBeldexRecoveryButton";
 
 const useStyles = makeStyles({
   box: {
@@ -58,11 +58,11 @@ const BitcoinRedeemedStateAlert = ({ swap }: { swap: GetSwapInfoResponse }) => {
         messages={[
           "The Bitcoin has been redeemed by the other party",
           "There is no risk of losing funds. You can take your time",
-          "The Monero will be automatically redeemed to the address you provided as soon as you resume the swap",
+          "The Beldex will be automatically redeemed to the address you provided as soon as you resume the swap",
           "If this step fails, you can manually redeem the funds",
         ]}
       />
-      <SwapMoneroRecoveryButton swap={swap} size="small" variant="contained" />
+      <SwapBeldexRecoveryButton swap={swap} size="small" variant="contained" />
     </Box>
   );
 };
@@ -155,8 +155,8 @@ function SwapAlertStatusText({ swap }: { swap: GetSwapInfoResponseExt }) {
     // These are states that are at risk of punishment because the Bitcoin have been locked
     // but has not been redeemed yet by the other party
     case BobStateName.BtcLocked:
-    case BobStateName.XmrLockProofReceived:
-    case BobStateName.XmrLocked:
+    case BobStateName.BeldexLockProofReceived:
+    case BobStateName.BeldexLocked:
     case BobStateName.EncSigSent:
     case BobStateName.CancelTimelockExpired:
     case BobStateName.BtcCancelled:

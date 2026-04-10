@@ -70,7 +70,7 @@ function SwapSelectDropDown({
         <MenuItem value={swap.swap_id} key={swap.swap_id}>
           Swap {swap.swap_id.substring(0, 5)}... from{" "}
           {new Date(parseDateString(swap.start_date)).toDateString()} (
-          <PiconeroAmount amount={swap.xmr_amount} />)
+          <PiconeroAmount amount={swap.bdx_amount} />)
         </MenuItem>
       ))}
     </Select>

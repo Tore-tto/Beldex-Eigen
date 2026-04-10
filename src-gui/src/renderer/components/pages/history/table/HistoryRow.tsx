@@ -25,9 +25,9 @@ const useStyles = makeStyles((theme) => ({
 
 function AmountTransfer({
   btcAmount,
-  xmrAmount,
+  bdxAmount,
 }: {
-  xmrAmount: number;
+  bdxAmount: number;
   btcAmount: number;
 }) {
   const classes = useStyles();
@@ -36,7 +36,7 @@ function AmountTransfer({
     <Box className={classes.amountTransferContainer}>
       <SatsAmount amount={btcAmount} />
       <ArrowForwardIcon />
-      <PiconeroAmount amount={xmrAmount} />
+      <PiconeroAmount amount={bdxAmount} />
     </Box>
   );
 }
@@ -55,7 +55,7 @@ export default function HistoryRow(swap: GetSwapInfoResponse) {
         <TableCell>{swap.swap_id}</TableCell>
         <TableCell>
           <AmountTransfer
-            xmrAmount={swap.xmr_amount}
+            bdxAmount={swap.bdx_amount}
             btcAmount={swap.btc_amount}
           />
         </TableCell>

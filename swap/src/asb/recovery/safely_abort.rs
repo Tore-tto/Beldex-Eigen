@@ -20,9 +20,9 @@ pub async fn safely_abort(swap_id: Uuid, db: Arc<dyn Database>) -> Result<AliceS
             Ok(state)
         }
 
-        AliceState::XmrLockTransactionSent { .. }
-        | AliceState::XmrLocked { .. }
-        | AliceState::XmrLockTransferProofSent { .. }
+        AliceState::BeldexLockTransactionSent { .. }
+        | AliceState::BeldexLocked { .. }
+        | AliceState::BeldexLockTransferProofSent { .. }
         | AliceState::EncSigLearned { .. }
         | AliceState::BtcRedeemTransactionPublished { .. }
         | AliceState::CancelTimelockExpired { .. }
@@ -30,7 +30,7 @@ pub async fn safely_abort(swap_id: Uuid, db: Arc<dyn Database>) -> Result<AliceS
         | AliceState::BtcRefunded { .. }
         | AliceState::BtcPunishable { .. }
         | AliceState::BtcRedeemed
-        | AliceState::XmrRefunded
+        | AliceState::BeldexRefunded
         | AliceState::BtcPunished { .. }
         | AliceState::SafelyAborted => bail!(
             "Cannot safely abort swap {} because it is in state {} which cannot be safely aborted",

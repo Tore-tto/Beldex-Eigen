@@ -1,14 +1,14 @@
 export enum RpcMethod {
   GET_BTC_BALANCE = "get_bitcoin_balance",
   WITHDRAW_BTC = "withdraw_btc",
-  BUY_XMR = "buy_xmr",
+  BUY_BDX = "buy_bdx",
   RESUME_SWAP = "resume_swap",
   LIST_SELLERS = "list_sellers",
   CANCEL_REFUND_SWAP = "cancel_refund_swap",
   GET_SWAP_INFO = "get_swap_info",
   SUSPEND_CURRENT_SWAP = "suspend_current_swap",
   GET_HISTORY = "get_history",
-  GET_MONERO_RECOVERY_KEYS = "get_monero_recovery_info",
+  GET_BELDEX_RECOVERY_KEYS = "get_beldex_recovery_info",
 }
 
 export enum RpcProcessStateType {
@@ -61,7 +61,7 @@ export interface WithdrawBitcoinResponse {
   txid: string;
 }
 
-export interface BuyXmrResponse {
+export interface BuyBeldexResponse {
   swapId: string;
 }
 
@@ -107,7 +107,7 @@ export type SwapSellerInfo = {
   addresses: string[];
 };
 
-export type MoneroRecoveryResponse = {
+export type BeldexRecoveryResponse = {
   address: string;
   spend_key: string;
   view_key: string;

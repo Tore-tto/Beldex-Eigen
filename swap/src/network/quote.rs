@@ -9,7 +9,7 @@ use libp2p::PeerId;
 use serde::{Deserialize, Serialize};
 use typeshare::typeshare;
 
-const PROTOCOL: &str = "/comit/xmr/btc/bid-quote/1.0.0";
+const PROTOCOL: &str = "/comit/bdx/btc/bid-quote/1.0.0";
 pub type OutEvent = RequestResponseEvent<(), BidQuote>;
 pub type Message = RequestResponseMessage<(), BidQuote>;
 
@@ -24,7 +24,7 @@ impl ProtocolName for BidQuoteProtocol {
     }
 }
 
-/// Represents a quote for buying XMR.
+/// Represents a quote for buying BDX.
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
 #[typeshare]
 pub struct BidQuote {

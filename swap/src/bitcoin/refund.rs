@@ -3,7 +3,7 @@ use crate::bitcoin::{
     verify_sig, Address, Amount, EmptyWitnessStack, NoInputs, NotThreeWitnesses, PublicKey,
     TooManyInputs, Transaction, TxCancel,
 };
-use crate::{bitcoin, monero};
+use crate::{bitcoin, beldex};
 use ::bitcoin::secp256k1;
 use ::bitcoin::util::sighash::SighashCache;
 use ::bitcoin::{EcdsaSighashType, Script, Sighash, Txid};
@@ -99,14 +99,14 @@ impl TxRefund {
         Ok(tx_refund)
     }
 
-    pub fn extract_monero_private_key(
+    pub fn extract_beldex_private_key(
         &self,
         published_refund_tx: bitcoin::Transaction,
-        s_a: monero::Scalar,
+        s_a: beldex::Scalar,
         a: bitcoin::SecretKey,
         S_b_bitcoin: bitcoin::PublicKey,
-    ) -> Result<monero::PrivateKey> {
-        let s_a = monero::PrivateKey { scalar: s_a };
+    ) -> Result<beldex::PrivateKey> {
+        let s_a = beldex::PrivateKey { scalar: s_a };
 
         let tx_refund_sig = self
             .extract_signature_by_key(published_refund_tx, a.public())
@@ -114,9 +114,9 @@ impl TxRefund {
         let tx_refund_encsig = a.encsign(S_b_bitcoin, self.digest());
 
         let s_b = bitcoin::recover(S_b_bitcoin, tx_refund_sig, tx_refund_encsig)
-            .context("Failed to recover Monero secret key from Bitcoin signature")?;
+            .context("Failed to recover Beldex secret key from Bitcoin signature")?;
 
-        let s_b = monero::private_key_from_secp256k1_scalar(s_b.into());
+        let s_b = beldex::private_key_from_secp256k1_scalar(s_b.into());
 
         let spend_key = s_a + s_b;
 

@@ -59,9 +59,9 @@ export function SwapCancelRefundButton({
 }
 
 export default function HistoryRowActions(swap: GetSwapInfoResponse) {
-  if (swap.state_name === BobStateName.XmrRedeemed) {
+  if (swap.state_name === BobStateName.BeldexRedeemed) {
     return (
-      <Tooltip title="This swap is completed. You have redeemed the Monero.">
+      <Tooltip title="This swap is completed. You have redeemed the Beldex.">
         <DoneIcon style={{ color: green[500] }} />
       </Tooltip>
     );

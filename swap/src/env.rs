@@ -14,10 +14,10 @@ pub struct Config {
     pub bitcoin_cancel_timelock: CancelTimelock,
     pub bitcoin_punish_timelock: PunishTimelock,
     pub bitcoin_network: bitcoin::Network,
-    pub monero_avg_block_time: Duration,
-    pub monero_finality_confirmations: u64,
-    #[serde(with = "monero_network")]
-    pub monero_network: monero::Network,
+    pub beldex_avg_block_time: Duration,
+    pub beldex_finality_confirmations: u64,
+    #[serde(with = "beldex_network")]
+    pub beldex_network: beldex::Network,
 }
 
 impl Config {
@@ -25,8 +25,8 @@ impl Config {
         sync_interval(self.bitcoin_avg_block_time)
     }
 
-    pub fn monero_sync_interval(&self) -> Duration {
-        sync_interval(self.monero_avg_block_time)
+    pub fn beldex_sync_interval(&self) -> Duration {
+        sync_interval(self.beldex_avg_block_time)
     }
 }
 
@@ -53,9 +53,9 @@ impl GetConfig for Mainnet {
             bitcoin_cancel_timelock: CancelTimelock::new(72),
             bitcoin_punish_timelock: PunishTimelock::new(72),
             bitcoin_network: bitcoin::Network::Bitcoin,
-            monero_avg_block_time: 2.std_minutes(),
-            monero_finality_confirmations: 10,
-            monero_network: monero::Network::Mainnet,
+            beldex_avg_block_time: 2.std_minutes(),
+            beldex_finality_confirmations: 10,
+            beldex_network: beldex::Network::Mainnet,
         }
     }
 }
@@ -70,9 +70,9 @@ impl GetConfig for Testnet {
             bitcoin_cancel_timelock: CancelTimelock::new(12),
             bitcoin_punish_timelock: PunishTimelock::new(6),
             bitcoin_network: bitcoin::Network::Testnet,
-            monero_avg_block_time: 2.std_minutes(),
-            monero_finality_confirmations: 10,
-            monero_network: monero::Network::Stagenet,
+            beldex_avg_block_time: 2.std_minutes(),
+            beldex_finality_confirmations: 10,
+            beldex_network: beldex::Network::Stagenet,
         }
     }
 }
@@ -87,9 +87,9 @@ impl GetConfig for Regtest {
             bitcoin_cancel_timelock: CancelTimelock::new(100),
             bitcoin_punish_timelock: PunishTimelock::new(50),
             bitcoin_network: bitcoin::Network::Regtest,
-            monero_avg_block_time: 1.std_seconds(),
-            monero_finality_confirmations: 10,
-            monero_network: monero::Network::Mainnet, // yes this is strange
+            beldex_avg_block_time: 1.std_seconds(),
+            beldex_finality_confirmations: 10,
+            beldex_network: beldex::Network::Mainnet, // yes this is strange
         }
     }
 }
@@ -115,9 +115,9 @@ pub fn new(is_testnet: bool, asb_config: &asb::config::Config) -> Config {
             env_config
         };
 
-    if let Some(monero_finality_confirmations) = asb_config.monero.finality_confirmations {
+    if let Some(beldex_finality_confirmations) = asb_config.beldex.finality_confirmations {
         Config {
-            monero_finality_confirmations,
+            beldex_finality_confirmations,
             ..env_config
         }
     } else {
@@ -125,11 +125,11 @@ pub fn new(is_testnet: bool, asb_config: &asb::config::Config) -> Config {
     }
 }
 
-mod monero_network {
-    use crate::monero::Network;
+mod beldex_network {
+    use crate::beldex::Network;
     use serde::Serializer;
 
-    pub fn serialize<S>(x: &monero::Network, s: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(x: &beldex::Network, s: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {

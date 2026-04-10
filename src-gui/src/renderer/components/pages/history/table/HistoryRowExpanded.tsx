@@ -13,7 +13,7 @@ import { GetSwapInfoResponse } from "models/tauriModel";
 import CopyableMonospaceTextBox from "renderer/components/other/CopyableMonospaceTextBox";
 import MonospaceTextBox from "renderer/components/other/MonospaceTextBox";
 import {
-    MoneroBitcoinExchangeRate,
+    BeldexBitcoinExchangeRate,
     PiconeroAmount,
     SatsAmount,
 } from "renderer/components/other/Units";
@@ -59,9 +59,9 @@ export default function HistoryRowExpanded({
               <TableCell>{swap.state_name}</TableCell>
             </TableRow>
             <TableRow>
-              <TableCell>Monero Amount</TableCell>
+              <TableCell>Beldex Amount</TableCell>
               <TableCell>
-                <PiconeroAmount amount={swap.xmr_amount} />
+                <PiconeroAmount amount={swap.bdx_amount} />
               </TableCell>
             </TableRow>
             <TableRow>
@@ -73,9 +73,9 @@ export default function HistoryRowExpanded({
             <TableRow>
               <TableCell>Exchange Rate</TableCell>
               <TableCell>
-                <MoneroBitcoinExchangeRate
+                <BeldexBitcoinExchangeRate
                   satsAmount={swap.btc_amount}
-                  piconeroAmount={swap.xmr_amount}
+                  piconeroAmount={swap.bdx_amount}
                 />
               </TableCell>
             </TableRow>
@@ -122,7 +122,7 @@ export default function HistoryRowExpanded({
           // TOOD: reimplement these buttons using Tauri
 
           <SwapCancelRefundButton swap={swap} variant="contained" size="small" />
-          <SwapMoneroRecoveryButton
+          <SwapBeldexRecoveryButton
             swap={swap}
             variant="contained"
             size="small"

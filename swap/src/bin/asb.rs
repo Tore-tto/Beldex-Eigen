@@ -32,12 +32,12 @@ use swap::asb::{cancel, punish, redeem, refund, safely_abort, EventLoop, Finalit
 use swap::common::tracing_util::Format;
 use swap::common::{self, check_latest_version, get_logs};
 use swap::database::open_db;
-use swap::network::rendezvous::XmrBtcNamespace;
+use swap::network::rendezvous::BeldexBtcNamespace;
 use swap::network::swarm;
 use swap::protocol::alice::{run, AliceState};
 use swap::seed::Seed;
 use swap::tor::AuthenticatedClient;
-use swap::{bitcoin, kraken, monero, tor};
+use swap::{bitcoin, kraken, beldex, tor};
 use tracing_subscriber::filter::LevelFilter;
 
 const DEFAULT_WALLET_NAME: &str = "asb-wallet";
@@ -84,10 +84,10 @@ pub async fn main() -> Result<()> {
     common::tracing_util::init(LevelFilter::DEBUG, format, log_dir).expect("initialize tracing");
 
     // check for conflicting env / config values
-    if config.monero.network != env_config.monero_network {
+    if config.beldex.network != env_config.beldex_network {
         bail!(format!(
-            "Expected monero network in config file to be {:?} but was {:?}",
-            env_config.monero_network, config.monero.network
+            "Expected beldex network in config file to be {:?} but was {:?}",
+            env_config.beldex_network, config.beldex.network
         ));
     }
     if config.bitcoin.network != env_config.bitcoin_network {
@@ -118,31 +118,31 @@ pub async fn main() -> Result<()> {
                 );
             }
 
-            // initialize monero wallet
-            let monero_wallet = init_monero_wallet(&config, env_config).await?;
-            let monero_address = monero_wallet.get_main_address();
-            tracing::info!(%monero_address, "Monero wallet address");
+            // initialize beldex wallet
+            let beldex_wallet = init_beldex_wallet(&config, env_config).await?;
+            let beldex_address = beldex_wallet.get_main_address();
+            tracing::info!(%beldex_address, "Beldex wallet address");
 
-            // check monero balance
-            let monero = monero_wallet.get_balance().await?;
-            match (monero.balance, monero.unlocked_balance) {
+            // check beldex balance
+            let beldex = beldex_wallet.get_balance().await?;
+            match (beldex.balance, beldex.unlocked_balance) {
                 (0, _) => {
                     tracing::warn!(
-                        %monero_address,
-                        "The Monero balance is 0, make sure to deposit funds at",
+                        %beldex_address,
+                        "The Beldex balance is 0, make sure to deposit funds at",
                     )
                 }
                 (total, 0) => {
-                    let total = monero::Amount::from_piconero(total);
+                    let total = beldex::Amount::from_atomic(total);
                     tracing::warn!(
                         %total,
-                        "Unlocked Monero balance is 0, total balance is",
+                        "Unlocked Beldex balance is 0, total balance is",
                     )
                 }
                 (total, unlocked) => {
-                    let total = monero::Amount::from_piconero(total);
-                    let unlocked = monero::Amount::from_piconero(unlocked);
-                    tracing::info!(%total, %unlocked, "Monero wallet balance");
+                    let total = beldex::Amount::from_atomic(total);
+                    let unlocked = beldex::Amount::from_atomic(unlocked);
+                    tracing::info!(%total, %unlocked, "Beldex wallet balance");
                 }
             }
 
@@ -171,7 +171,7 @@ pub async fn main() -> Result<()> {
             };
 
             let kraken_rate = KrakenRate::new(config.maker.ask_spread, kraken_price_updates);
-            let namespace = XmrBtcNamespace::from_is_testnet(testnet);
+            let namespace = BeldexBtcNamespace::from_is_testnet(testnet);
 
             let mut swarm = swarm::asb(
                 &seed,
@@ -203,7 +203,7 @@ pub async fn main() -> Result<()> {
                 swarm,
                 env_config,
                 Arc::new(bitcoin_wallet),
-                Arc::new(monero_wallet),
+                Arc::new(beldex_wallet),
                 db,
                 kraken_rate.clone(),
                 config.maker.min_buy_btc,
@@ -280,14 +280,14 @@ pub async fn main() -> Result<()> {
             bitcoin_wallet.broadcast(signed_tx, "withdraw").await?;
         }
         Command::Balance => {
-            let monero_wallet = init_monero_wallet(&config, env_config).await?;
-            let monero_balance = monero_wallet.get_balance().await?;
-            tracing::info!(%monero_balance);
+            let beldex_wallet = init_beldex_wallet(&config, env_config).await?;
+            let beldex_balance = beldex_wallet.get_balance().await?;
+            tracing::info!(%beldex_balance);
 
             let bitcoin_wallet = init_bitcoin_wallet(&config, &seed, env_config).await?;
             let bitcoin_balance = bitcoin_wallet.balance().await?;
             tracing::info!(%bitcoin_balance);
-            tracing::info!(%bitcoin_balance, %monero_balance, "Current balance");
+            tracing::info!(%bitcoin_balance, %beldex_balance, "Current balance");
         }
         Command::Cancel { swap_id } => {
             let bitcoin_wallet = init_bitcoin_wallet(&config, &seed, env_config).await?;
@@ -298,17 +298,17 @@ pub async fn main() -> Result<()> {
         }
         Command::Refund { swap_id } => {
             let bitcoin_wallet = init_bitcoin_wallet(&config, &seed, env_config).await?;
-            let monero_wallet = init_monero_wallet(&config, env_config).await?;
+            let beldex_wallet = init_beldex_wallet(&config, env_config).await?;
 
             refund(
                 swap_id,
                 Arc::new(bitcoin_wallet),
-                Arc::new(monero_wallet),
+                Arc::new(beldex_wallet),
                 db,
             )
             .await?;
 
-            tracing::info!("Monero successfully refunded");
+            tracing::info!("Beldex successfully refunded");
         }
         Command::Punish { swap_id } => {
             let bitcoin_wallet = init_bitcoin_wallet(&config, &seed, env_config).await?;
@@ -370,13 +370,13 @@ async fn init_bitcoin_wallet(
     Ok(wallet)
 }
 
-async fn init_monero_wallet(
+async fn init_beldex_wallet(
     config: &Config,
     env_config: swap::env::Config,
-) -> Result<monero::Wallet> {
-    tracing::debug!("Opening Monero wallet");
-    let wallet = monero::Wallet::open_or_create(
-        config.monero.wallet_rpc_url.clone(),
+) -> Result<beldex::Wallet> {
+    tracing::debug!("Opening Beldex wallet");
+    let wallet = beldex::Wallet::open_or_create(
+        config.beldex.wallet_rpc_url.clone(),
         DEFAULT_WALLET_NAME.to_string(),
         env_config,
     )

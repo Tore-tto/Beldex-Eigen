@@ -1,15 +1,15 @@
 pub mod request;
 pub mod tauri_bindings;
 
-use crate::cli::command::{Bitcoin, Monero, Tor};
+use crate::cli::command::{Bitcoin, Beldex, Tor};
 use crate::common::tracing_util::Format;
 use crate::database::open_db;
 use crate::env::{Config as EnvConfig, GetConfig, Mainnet, Testnet};
 use crate::fs::system_data_dir;
-use crate::network::rendezvous::XmrBtcNamespace;
+use crate::network::rendezvous::BeldexBtcNamespace;
 use crate::protocol::Database;
 use crate::seed::Seed;
-use crate::{bitcoin, common, monero};
+use crate::{bitcoin, common, beldex};
 use anyhow::anyhow;
 use anyhow::{bail, Context as AnyContext, Error, Result};
 use futures::future::try_join_all;
@@ -32,7 +32,7 @@ static START: Once = Once::new();
 #[derive(Clone, PartialEq, Debug)]
 pub struct Config {
     tor_socks5_port: u16,
-    namespace: XmrBtcNamespace,
+    namespace: BeldexBtcNamespace,
     pub env_config: EnvConfig,
     seed: Option<Seed>,
     debug: bool,
@@ -184,15 +184,15 @@ pub struct Context {
     pub tasks: Arc<PendingTaskList>,
     tauri_handle: Option<TauriHandle>,
     bitcoin_wallet: Option<Arc<bitcoin::Wallet>>,
-    monero_wallet: Option<Arc<monero::Wallet>>,
-    monero_rpc_process: Option<Arc<SyncMutex<monero::WalletRpcProcess>>>,
+    beldex_wallet: Option<Arc<beldex::Wallet>>,
+    beldex_rpc_process: Option<Arc<SyncMutex<beldex::WalletRpcProcess>>>,
 }
 
 /// A conveniant builder struct for [`Context`].
 #[derive(Debug)]
 #[must_use = "ContextBuilder must be built to be useful"]
 pub struct ContextBuilder {
-    monero: Option<Monero>,
+    beldex: Option<Beldex>,
     bitcoin: Option<Bitcoin>,
     tor: Option<Tor>,
     data: Option<PathBuf>,
@@ -215,7 +215,7 @@ impl ContextBuilder {
     /// Basic builder with default options for mainnet
     pub fn mainnet() -> Self {
         ContextBuilder {
-            monero: None,
+            beldex: None,
             bitcoin: None,
             tor: None,
             data: None,
@@ -233,9 +233,9 @@ impl ContextBuilder {
         builder
     }
 
-    /// Configures the Context to initialize a Monero wallet with the given configuration.
-    pub fn with_monero(mut self, monero: impl Into<Option<Monero>>) -> Self {
-        self.monero = monero.into();
+    /// Configures the Context to initialize a Beldex wallet with the given configuration.
+    pub fn with_beldex(mut self, beldex: impl Into<Option<Beldex>>) -> Self {
+        self.beldex = beldex.into();
         self
     }
 
@@ -320,18 +320,18 @@ impl ContextBuilder {
             }
         };
 
-        // We initialize the Monero wallet below
+        // We initialize the Beldex wallet below
         // To display the progress to the user, we emit events to the Tauri frontend
         self.tauri_handle
             .emit_context_init_progress_event(TauriContextStatusEvent::Initializing(
-                TauriContextInitializationProgress::OpeningMoneroWallet,
+                TauriContextInitializationProgress::OpeningBeldexWallet,
             ));
 
-        let (monero_wallet, monero_rpc_process) = {
-            if let Some(monero) = self.monero {
-                let monero_daemon_address = monero.apply_defaults(self.is_testnet);
+        let (beldex_wallet, beldex_rpc_process) = {
+            if let Some(beldex) = self.beldex {
+                let beldex_daemon_address = beldex.apply_defaults(self.is_testnet);
                 let (wlt, prc) =
-                    init_monero_wallet(data_dir.clone(), monero_daemon_address, env_config).await?;
+                    init_beldex_wallet(data_dir.clone(), beldex_daemon_address, env_config).await?;
                 (Some(Arc::new(wlt)), Some(Arc::new(SyncMutex::new(prc))))
             } else {
                 (None, None)
@@ -352,11 +352,11 @@ impl ContextBuilder {
         let context = Context {
             db,
             bitcoin_wallet,
-            monero_wallet,
-            monero_rpc_process,
+            beldex_wallet,
+            beldex_rpc_process,
             config: Config {
                 tor_socks5_port,
-                namespace: XmrBtcNamespace::from_is_testnet(self.is_testnet),
+                namespace: BeldexBtcNamespace::from_is_testnet(self.is_testnet),
                 env_config,
                 seed: Some(seed),
                 debug: self.debug,
@@ -385,18 +385,18 @@ impl Context {
         env_config: EnvConfig,
         db_path: PathBuf,
         bob_bitcoin_wallet: Arc<bitcoin::Wallet>,
-        bob_monero_wallet: Arc<monero::Wallet>,
+        bob_beldex_wallet: Arc<beldex::Wallet>,
     ) -> Self {
         let config = Config::for_harness(seed, env_config);
 
         Self {
             bitcoin_wallet: Some(bob_bitcoin_wallet),
-            monero_wallet: Some(bob_monero_wallet),
+            beldex_wallet: Some(bob_beldex_wallet),
             config,
             db: open_db(db_path)
                 .await
                 .expect("Could not open sqlite database"),
-            monero_rpc_process: None,
+            beldex_rpc_process: None,
             swap_lock: Arc::new(SwapLock::new()),
             tasks: Arc::new(PendingTaskList::default()),
             tauri_handle: None,
@@ -404,13 +404,13 @@ impl Context {
     }
 
     pub fn cleanup(&self) -> Result<()> {
-        if let Some(ref monero_rpc_process) = self.monero_rpc_process {
-            let mut process = monero_rpc_process
+        if let Some(ref beldex_rpc_process) = self.beldex_rpc_process {
+            let mut process = beldex_rpc_process
                 .lock()
-                .map_err(|_| anyhow!("Failed to lock monero_rpc_process for cleanup"))?;
+                .map_err(|_| anyhow!("Failed to lock beldex_rpc_process for cleanup"))?;
 
             process.kill()?;
-            println!("Killed monero-wallet-rpc process");
+            println!("Killed beldex-wallet-rpc process");
         }
 
         Ok(())
@@ -447,29 +447,29 @@ async fn init_bitcoin_wallet(
     Ok(wallet)
 }
 
-async fn init_monero_wallet(
+async fn init_beldex_wallet(
     data_dir: PathBuf,
-    monero_daemon_address: String,
+    beldex_daemon_address: String,
     env_config: EnvConfig,
-) -> Result<(monero::Wallet, monero::WalletRpcProcess)> {
-    let network = env_config.monero_network;
+) -> Result<(beldex::Wallet, beldex::WalletRpcProcess)> {
+    let network = env_config.beldex_network;
 
-    const MONERO_BLOCKCHAIN_MONITORING_WALLET_NAME: &str = "swap-tool-blockchain-monitoring-wallet";
+    const BELDEX_BLOCKCHAIN_MONITORING_WALLET_NAME: &str = "swap-tool-blockchain-monitoring-wallet";
 
-    let monero_wallet_rpc = monero::WalletRpc::new(data_dir.join("monero")).await?;
+    let beldex_wallet_rpc = beldex::WalletRpc::new(data_dir.join("beldex")).await?;
 
-    let monero_wallet_rpc_process = monero_wallet_rpc
-        .run(network, Some(monero_daemon_address))
+    let beldex_wallet_rpc_process = beldex_wallet_rpc
+        .run(network, Some(beldex_daemon_address))
         .await?;
 
-    let monero_wallet = monero::Wallet::open_or_create(
-        monero_wallet_rpc_process.endpoint(),
-        MONERO_BLOCKCHAIN_MONITORING_WALLET_NAME.to_string(),
+    let beldex_wallet = beldex::Wallet::open_or_create(
+        beldex_wallet_rpc_process.endpoint(),
+        BELDEX_BLOCKCHAIN_MONITORING_WALLET_NAME.to_string(),
         env_config,
     )
     .await?;
 
-    Ok((monero_wallet, monero_wallet_rpc_process))
+    Ok((beldex_wallet, beldex_wallet_rpc_process))
 }
 
 mod data {
@@ -505,7 +505,7 @@ impl Config {
 
         Self {
             tor_socks5_port: 9050,
-            namespace: XmrBtcNamespace::from_is_testnet(false),
+            namespace: BeldexBtcNamespace::from_is_testnet(false),
             env_config,
             seed: Some(seed),
             debug: false,
@@ -522,9 +522,9 @@ pub mod api_test {
 
     pub const MULTI_ADDRESS: &str =
         "/ip4/127.0.0.1/tcp/9939/p2p/12D3KooWCdMKjesXMJz1SiZ7HgotrxuqhQJbP5sgBm2BwP1cqThi";
-    pub const MONERO_STAGENET_ADDRESS: &str = "53gEuGZUhP9JMEBZoGaFNzhwEgiG7hwQdMCqFxiyiTeFPmkbt1mAoNybEUvYBKHcnrSgxnVWgZsTvRBaHBNXPa8tHiCU51a";
+    pub const BELDEX_STAGENET_ADDRESS: &str = "53gEuGZUhP9JMEBZoGaFNzhwEgiG7hwQdMCqFxiyiTeFPmkbt1mAoNybEUvYBKHcnrSgxnVWgZsTvRBaHBNXPa8tHiCU51a";
     pub const BITCOIN_TESTNET_ADDRESS: &str = "tb1qr3em6k3gfnyl8r7q0v7t4tlnyxzgxma3lressv";
-    pub const MONERO_MAINNET_ADDRESS: &str = "44Ato7HveWidJYUAVw5QffEcEtSH1DwzSP3FPPkHxNAS4LX9CqgucphTisH978FLHE34YNEx7FcbBfQLQUU8m3NUC4VqsRa";
+    pub const BELDEX_MAINNET_ADDRESS: &str = "44Ato7HveWidJYUAVw5QffEcEtSH1DwzSP3FPPkHxNAS4LX9CqgucphTisH978FLHE34YNEx7FcbBfQLQUU8m3NUC4VqsRa";
     pub const BITCOIN_MAINNET_ADDRESS: &str = "bc1qe4epnfklcaa0mun26yz5g8k24em5u9f92hy325";
     pub const SWAP_ID: &str = "ea030832-3be9-454f-bb98-5ea9a788406b";
 
@@ -542,7 +542,7 @@ pub mod api_test {
             let env_config = env_config_from(is_testnet);
             Self {
                 tor_socks5_port: 9050,
-                namespace: XmrBtcNamespace::from_is_testnet(is_testnet),
+                namespace: BeldexBtcNamespace::from_is_testnet(is_testnet),
                 env_config,
                 seed: Some(seed),
                 debug,
