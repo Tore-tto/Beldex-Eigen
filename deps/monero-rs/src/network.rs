@@ -54,7 +54,7 @@ impl Network {
         use Network::*;
         match self {
             Mainnet => match addr_type {
-                Standard => 18,
+                Standard => 209,
                 Integrated(_) => 19,
                 SubAddress => 42,
             },
@@ -77,7 +77,7 @@ impl Network {
     pub fn from_u8(byte: u8) -> Result<Network, Error> {
         use Network::*;
         match byte {
-            18 | 19 | 42 => Ok(Mainnet),
+            209 | 19 | 42 => Ok(Mainnet),
             53 | 54 | 63 => Ok(Testnet),
             24 | 25 | 36 => Ok(Stagenet),
             _ => Err(Error::InvalidMagicByte),

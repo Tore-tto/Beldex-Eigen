@@ -69,6 +69,9 @@ pub enum Error {
     /// Network error.
     #[error("Network error: {0}")]
     Network(#[from] network::Error),
+    /// Encode error.
+    #[error("Encode error: {0}")]
+    Encoding(&'static str),
 }
 
 /// Address type: standard, integrated, or sub-address.
@@ -92,7 +95,7 @@ impl AddressType {
         use Network::*;
         match net {
             Mainnet => match byte {
-                18 => Ok(Standard),
+                209 => Ok(Standard),
                 19 => {
                     let payment_id = PaymentId::from_slice(&bytes[65..73]);
                     Ok(Integrated(payment_id))
@@ -222,18 +225,42 @@ impl Address {
     /// Parse an address from a vector of bytes, fail if the magic byte is incorrect, if public
     /// keys are not valid points, if payment id is invalid, and if checksums missmatch.
     pub fn from_bytes(bytes: &[u8]) -> Result<Address, Error> {
-        let network = Network::from_u8(bytes[0])?;
-        let addr_type = AddressType::from_slice(&bytes, network)?;
-        let public_spend =
-            PublicKey::from_slice(&bytes[1..33]).map_err(|_| Error::InvalidFormat)?;
-        let public_view =
-            PublicKey::from_slice(&bytes[33..65]).map_err(|_| Error::InvalidFormat)?;
+        if bytes.len() < 66 {
+            return Err(Error::Encoding("Not enough bytes"));
+        }
+
+        // 0xd1 (209) encodes as 2-byte varint [0xd1, 0x01]
+        // Detect if we have a 2-byte prefix
+        let (prefix_len, network) = if bytes[0] == 0xd1 && bytes.get(1) == Some(&0x01) {
+            (2, Network::from_u8(0xd1)?)
+        } else {
+            (1, Network::from_u8(bytes[0])?)
+        };
+
+        let addr_type = AddressType::from_slice(bytes, network)?;
+
+        let public_spend = PublicKey::from_slice(&bytes[prefix_len..prefix_len + 32])
+            .map_err(|_| Error::InvalidFormat)?;
+        let public_view = PublicKey::from_slice(&bytes[prefix_len + 32..prefix_len + 64])
+            .map_err(|_| Error::InvalidFormat)?;
+
+        let data_end = prefix_len + 64;
+        let (checksum_bytes, checksum) = match addr_type {
+            AddressType::Standard | AddressType::SubAddress => {
+                if bytes.len() < data_end + 4 {
+                    return Err(Error::Encoding("Not enough bytes for checksum"));
+                }
+                (&bytes[0..data_end], &bytes[data_end..data_end + 4])
+            }
+            AddressType::Integrated(_) => {
+                if bytes.len() < data_end + 12 {
+                    return Err(Error::Encoding("Not enough bytes for integrated checksum"));
+                }
+                (&bytes[0..data_end + 8], &bytes[data_end + 8..data_end + 12])
+            }
+        };
 
         let mut verify_checksum = [0u8; 32];
-        let (checksum_bytes, checksum) = match addr_type {
-            AddressType::Standard | AddressType::SubAddress => (&bytes[0..65], &bytes[65..69]),
-            AddressType::Integrated(_) => (&bytes[0..73], &bytes[73..77]),
-        };
         keccak_256(checksum_bytes, &mut verify_checksum);
         if &verify_checksum[0..4] != checksum {
             return Err(Error::InvalidChecksum);
@@ -249,7 +276,14 @@ impl Address {
 
     /// Serialize the address as a vector of bytes.
     pub fn as_bytes(&self) -> Vec<u8> {
-        let mut bytes = vec![self.network.as_u8(&self.addr_type)];
+        let mut bytes = Vec::new();
+        let magic = self.network.as_u8(&self.addr_type);
+        if magic == 209 {
+            bytes.push(0xd1);
+            bytes.push(0x01);
+        } else {
+            bytes.push(magic);
+        }
         bytes.extend_from_slice(self.public_spend.as_bytes());
         bytes.extend_from_slice(self.public_view.as_bytes());
         if let AddressType::Integrated(payment_id) = &self.addr_type {
