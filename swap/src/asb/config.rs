@@ -214,6 +214,12 @@ pub enum PriceSource {
     Coingecko,
 }
 
+impl Default for PriceSource {
+    fn default() -> Self {
+        Self::Coingecko
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Maker {
@@ -222,6 +228,7 @@ pub struct Maker {
     #[serde(with = "::bitcoin::util::amount::serde::as_btc")]
     pub max_buy_btc: bitcoin::Amount,
     pub ask_spread: Decimal,
+    #[serde(default)]
     pub price_ticker_source: PriceSource,
     pub price_ticker_ws_url: Url,
     pub external_bitcoin_redeem_address: Option<bitcoin::Address>,
