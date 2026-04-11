@@ -22,13 +22,19 @@ use std::convert::TryInto;
 use std::env;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::Arc;
+use std::time::Duration;
 use structopt::clap;
 use structopt::clap::ErrorKind;
 use swap::asb::command::{parse_args, Arguments, Command};
 use swap::asb::config::{
     initial_setup, query_user_for_initial_config, read_config, Config, ConfigNotInitialized,
+    PriceSource,
 };
-use swap::asb::{cancel, punish, redeem, refund, safely_abort, EventLoop, Finality, KrakenRate};
+use swap::asb::{
+    cancel, punish, redeem, refund, safely_abort, CoinGeckoRate, DynamicRate, EventLoop, Finality,
+    KrakenRate,
+};
+use swap::coingecko;
 use swap::common::tracing_util::Format;
 use swap::common::{self, check_latest_version, get_logs};
 use swap::database::open_db;
@@ -151,7 +157,16 @@ pub async fn main() -> Result<()> {
             let bitcoin_balance = bitcoin_wallet.balance().await?;
             tracing::info!(%bitcoin_balance, "Bitcoin wallet balance");
 
-            let kraken_price_updates = kraken::connect(config.maker.price_ticker_ws_url.clone())?;
+            let price_rate = match config.maker.price_ticker_source {
+                PriceSource::Kraken => {
+                    let kraken_price_updates = kraken::connect(config.maker.price_ticker_ws_url.clone())?;
+                    DynamicRate::Kraken(KrakenRate::new(config.maker.ask_spread, kraken_price_updates))
+                }
+                PriceSource::Coingecko => {
+                    let coingecko_price_updates = coingecko::connect(Duration::from_secs(60))?; // Poll every minute
+                    DynamicRate::CoinGecko(CoinGeckoRate::new(config.maker.ask_spread, coingecko_price_updates))
+                }
+            };
 
             // setup Tor hidden services
             let tor_client =
@@ -169,15 +184,13 @@ pub async fn main() -> Result<()> {
                     None
                 }
             };
-
-            let kraken_rate = KrakenRate::new(config.maker.ask_spread, kraken_price_updates);
             let namespace = BeldexBtcNamespace::from_is_testnet(testnet);
 
             let mut swarm = swarm::asb(
                 &seed,
                 config.maker.min_buy_btc,
                 config.maker.max_buy_btc,
-                kraken_rate.clone(),
+                price_rate.clone(),
                 resume_only,
                 env_config,
                 namespace,
@@ -199,13 +212,13 @@ pub async fn main() -> Result<()> {
                 );
             }
 
-            let (event_loop, mut swap_receiver) = EventLoop::new(
+            let (event_loop, mut swap_receiver): (EventLoop<DynamicRate>, _) = EventLoop::new(
                 swarm,
                 env_config,
                 Arc::new(bitcoin_wallet),
                 Arc::new(beldex_wallet),
                 db,
-                kraken_rate.clone(),
+                price_rate.clone(),
                 config.maker.min_buy_btc,
                 config.maker.max_buy_btc,
                 config.maker.external_bitcoin_redeem_address,
@@ -214,7 +227,7 @@ pub async fn main() -> Result<()> {
 
             tokio::spawn(async move {
                 while let Some(swap) = swap_receiver.recv().await {
-                    let rate = kraken_rate.clone();
+                    let rate = price_rate.clone();
                     tokio::spawn(async move {
                         let swap_id = swap.swap_id;
                         match run(swap, rate).await {

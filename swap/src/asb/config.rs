@@ -208,6 +208,13 @@ pub struct TorConf {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PriceSource {
+    Kraken,
+    Coingecko,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Maker {
     #[serde(with = "::bitcoin::util::amount::serde::as_btc")]
@@ -215,6 +222,7 @@ pub struct Maker {
     #[serde(with = "::bitcoin::util::amount::serde::as_btc")]
     pub max_buy_btc: bitcoin::Amount,
     pub ask_spread: Decimal,
+    pub price_ticker_source: PriceSource,
     pub price_ticker_ws_url: Url,
     pub external_bitcoin_redeem_address: Option<bitcoin::Address>,
 }
@@ -397,6 +405,7 @@ pub fn query_user_for_initial_config(testnet: bool) -> Result<Config> {
             min_buy_btc: min_buy,
             max_buy_btc: max_buy,
             ask_spread,
+            price_ticker_source: PriceSource::Coingecko,
             price_ticker_ws_url: defaults.price_ticker_ws_url,
             external_bitcoin_redeem_address: None,
         },
@@ -443,6 +452,7 @@ mod tests {
                 min_buy_btc: bitcoin::Amount::from_btc(DEFAULT_MIN_BUY_AMOUNT).unwrap(),
                 max_buy_btc: bitcoin::Amount::from_btc(DEFAULT_MAX_BUY_AMOUNT).unwrap(),
                 ask_spread: Decimal::from_f64(DEFAULT_SPREAD).unwrap(),
+                price_ticker_source: PriceSource::Coingecko,
                 price_ticker_ws_url: defaults.price_ticker_ws_url,
                 external_bitcoin_redeem_address: None,
             },
@@ -487,6 +497,7 @@ mod tests {
                 min_buy_btc: bitcoin::Amount::from_btc(DEFAULT_MIN_BUY_AMOUNT).unwrap(),
                 max_buy_btc: bitcoin::Amount::from_btc(DEFAULT_MAX_BUY_AMOUNT).unwrap(),
                 ask_spread: Decimal::from_f64(DEFAULT_SPREAD).unwrap(),
+                price_ticker_source: PriceSource::Coingecko,
                 price_ticker_ws_url: defaults.price_ticker_ws_url,
                 external_bitcoin_redeem_address: None,
             },
@@ -541,6 +552,7 @@ mod tests {
                 min_buy_btc: bitcoin::Amount::from_btc(DEFAULT_MIN_BUY_AMOUNT).unwrap(),
                 max_buy_btc: bitcoin::Amount::from_btc(DEFAULT_MAX_BUY_AMOUNT).unwrap(),
                 ask_spread: Decimal::from_f64(DEFAULT_SPREAD).unwrap(),
+                price_ticker_source: PriceSource::Coingecko,
                 price_ticker_ws_url: defaults.price_ticker_ws_url,
                 external_bitcoin_redeem_address: None,
             },

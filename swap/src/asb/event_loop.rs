@@ -560,6 +560,57 @@ impl LatestRate for KrakenRate {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct CoinGeckoRate {
+    ask_spread: Decimal,
+    price_updates: crate::coingecko::PriceUpdates,
+}
+
+impl CoinGeckoRate {
+    pub fn new(ask_spread: Decimal, price_updates: crate::coingecko::PriceUpdates) -> Self {
+        Self {
+            ask_spread,
+            price_updates,
+        }
+    }
+}
+
+impl LatestRate for CoinGeckoRate {
+    type Error = crate::coingecko::Error;
+
+    fn latest_rate(&mut self) -> Result<Rate, Self::Error> {
+        let update = self.price_updates.latest_update()?;
+        let rate = Rate::new(update.ask, self.ask_spread);
+
+        Ok(rate)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum DynamicRate {
+    Kraken(KrakenRate),
+    CoinGecko(CoinGeckoRate),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum DynamicRateError {
+    #[error("Kraken error: {0}")]
+    Kraken(String),
+    #[error("CoinGecko error: {0}")]
+    CoinGecko(String),
+}
+
+impl LatestRate for DynamicRate {
+    type Error = DynamicRateError;
+
+    fn latest_rate(&mut self) -> Result<Rate, Self::Error> {
+        match self {
+            DynamicRate::Kraken(r) => r.latest_rate().map_err(|e| DynamicRateError::Kraken(e.to_string())),
+            DynamicRate::CoinGecko(r) => r.latest_rate().map_err(|e| DynamicRateError::CoinGecko(e.to_string())),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct EventLoopHandle {
     recv_encrypted_signature: Option<bmrng::RequestReceiver<bitcoin::EncryptedSignature, ()>>,

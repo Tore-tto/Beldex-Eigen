@@ -19,6 +19,7 @@
 pub mod asb;
 pub mod bitcoin;
 pub mod cli;
+pub mod coingecko;
 pub mod common;
 pub mod database;
 pub mod env;

@@ -5,7 +5,10 @@ mod network;
 mod rate;
 mod recovery;
 
-pub use event_loop::{EventLoop, EventLoopHandle, FixedRate, KrakenRate, LatestRate};
+pub use config::PriceSource;
+pub use event_loop::{
+    CoinGeckoRate, DynamicRate, EventLoop, EventLoopHandle, FixedRate, KrakenRate, LatestRate,
+};
 pub use network::behaviour::{Behaviour, OutEvent};
 pub use network::rendezvous::RendezvousNode;
 pub use network::transport;
