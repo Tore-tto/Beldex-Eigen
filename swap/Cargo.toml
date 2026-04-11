@@ -25,16 +25,12 @@ bmrng = "0.5"
 comfy-table = "7.1"
 config = { version = "0.14", default-features = false, features = [ "toml" ] }
 conquer-once = "0.4"
-curve25519-dalek = { package = "curve25519-dalek-ng", version = "4" }
+curve25519-dalek-ng = { version = "4", features = ["serde"] }
 data-encoding = "2.6"
 dialoguer = "0.11"
 digest = "0.10.7"
 directories-next = "2"
-ecdsa_fun = { version = "0.10", default-features = false, features = [
-    "libsecp_compat",
-    "serde",
-    "adaptor",
-] }
+ecdsa_fun = { version = "0.10", default-features = false, features = [ "libsecp_compat", "serde", "adaptor" ] }
 ed25519-dalek = "1"
 erased-serde = "0.4.5"
 futures = { version = "0.3", default-features = false }
@@ -65,8 +61,7 @@ qrcode = "0.14"
 rand = "0.8"
 rand_chacha = "0.3"
 regex = "1.10"
-reqwest = { version = "0.12", features = [
-    "http2",
+reqwest = { version = "0.11", features = [
     "rustls-tls",
     "stream",
     "socks",
@@ -78,12 +73,8 @@ serde_cbor = "0.11"
 serde_json = "1"
 serde_with = { version = "1", features = [ "macros" ] }
 sha2 = "0.10"
-sigma_fun = { version = "0.7", default-features = false, features = [
-    "ed25519",
-    "serde",
-    "secp256k1",
-    "alloc",
-] }
+sigma_fun = { version = "0.7", default-features = false, features = [ "ed25519", "serde", "secp256k1", "alloc" ] }
+secp256kfun = { version = "0.10", default-features = false, features = [ "libsecp_compat", "serde" ] }
 sqlx = { version = "0.6.3", features = [
     "sqlite",
     "runtime-tokio-rustls",

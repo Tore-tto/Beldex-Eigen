@@ -22,7 +22,7 @@ pub static CROSS_CURVE_PROOF_SYSTEM: Lazy<
 > = Lazy::new(|| {
     CrossCurveDLEQ::<HashTranscript<Sha256, rand_chacha::ChaCha20Rng>>::new(
         (*ecdsa_fun::fun::G).normalize(),
-        curve25519_dalek::constants::ED25519_BASEPOINT_POINT,
+        curve25519_dalek_ng::constants::ED25519_BASEPOINT_POINT,
     )
 });
 

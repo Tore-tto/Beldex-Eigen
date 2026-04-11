@@ -3,6 +3,8 @@ resolver = "2"
 members = [ "beldex-harness", "beldex-rpc", "swap", "beldex-wallet", "src-tauri" ]
 
 [patch.crates-io]
-# patch until new release https://github.com/thomaseizinger/rust-jsonrpc-client/pull/51
-jsonrpc_client = { git = "https://github.com/delta1/rust-jsonrpc-client.git", rev = "3b6081697cd616c952acb9c2f02d546357d35506" }
-monero = { git = "https://github.com/comit-network/monero-rs", rev = "818f38b" }
+monero = { path = "deps/monero-rs" }
+libp2p-core = { path = "deps/rust-libp2p/core" }
+# Unify Dalek to use the -ng version globally
+curve25519-dalek = { path = "deps/dalek-repo/curve25519-dalek" }
+ed25519-dalek = { path = "deps/ed25519-dalek" }

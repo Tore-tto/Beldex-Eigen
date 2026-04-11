@@ -3,7 +3,7 @@ mod wallet_rpc;
 
 pub use ::beldex::network::Network;
 pub use ::beldex::{Address, PrivateKey, PublicKey};
-pub use curve25519_dalek::scalar::Scalar;
+pub use curve25519_dalek_ng::scalar::Scalar;
 use typeshare::typeshare;
 pub use wallet::Wallet;
 pub use wallet_rpc::{WalletRpc, WalletRpcProcess};
