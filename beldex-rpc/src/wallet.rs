@@ -9,11 +9,17 @@ use serde::de::DeserializeOwned;
 
 #[async_trait::async_trait]
 pub trait BeldexWalletRpc<E: std::error::Error + Send + Sync + 'static> {
-    async fn get_address(&self, account_index: u32) -> Result<GetAddress, jsonrpc_client::Error<E>>;
-    async fn get_balance(&self, account_index: u32) -> Result<GetBalance, jsonrpc_client::Error<E>>;
-    async fn create_account(&self, label: String) -> Result<CreateAccount, jsonrpc_client::Error<E>>;
+    async fn get_address(&self, account_index: u32)
+        -> Result<GetAddress, jsonrpc_client::Error<E>>;
+    async fn get_balance(&self, account_index: u32)
+        -> Result<GetBalance, jsonrpc_client::Error<E>>;
+    async fn create_account(
+        &self,
+        label: String,
+    ) -> Result<CreateAccount, jsonrpc_client::Error<E>>;
     async fn get_accounts(&self, tag: String) -> Result<GetAccounts, jsonrpc_client::Error<E>>;
-    async fn open_wallet(&self, filename: String) -> Result<WalletOpened, jsonrpc_client::Error<E>>;
+    async fn open_wallet(&self, filename: String)
+        -> Result<WalletOpened, jsonrpc_client::Error<E>>;
     async fn close_wallet(&self) -> Result<WalletClosed, jsonrpc_client::Error<E>>;
     async fn create_wallet(
         &self,
@@ -101,11 +107,13 @@ impl Client {
             .map_err(jsonrpc_client::Error::Client)?;
 
         if let Some(error) = response.error {
-            return Err(jsonrpc_client::Error::JsonRpc(jsonrpc_client::JsonRpcError {
-                code: error.code,
-                message: error.message,
-                data: error.data,
-            }));
+            return Err(jsonrpc_client::Error::JsonRpc(
+                jsonrpc_client::JsonRpcError {
+                    code: error.code,
+                    message: error.message,
+                    data: error.data,
+                },
+            ));
         }
 
         Ok(response.result.expect("result or error must be present"))
@@ -152,35 +160,74 @@ pub struct RpcError {
 
 #[async_trait::async_trait]
 impl BeldexWalletRpc<reqwest::Error> for Client {
-    async fn get_address(&self, account_index: u32) -> Result<GetAddress, jsonrpc_client::Error<reqwest::Error>> {
-        self.call("get_address", serde_json::json!({ "account_index": account_index })).await
+    async fn get_address(
+        &self,
+        account_index: u32,
+    ) -> Result<GetAddress, jsonrpc_client::Error<reqwest::Error>> {
+        self.call(
+            "get_address",
+            serde_json::json!({ "account_index": account_index }),
+        )
+        .await
     }
 
-    async fn get_balance(&self, account_index: u32) -> Result<GetBalance, jsonrpc_client::Error<reqwest::Error>> {
-        self.call("get_balance", serde_json::json!({ "account_index": account_index })).await
+    async fn get_balance(
+        &self,
+        account_index: u32,
+    ) -> Result<GetBalance, jsonrpc_client::Error<reqwest::Error>> {
+        self.call(
+            "get_balance",
+            serde_json::json!({ "account_index": account_index }),
+        )
+        .await
     }
 
-    async fn create_account(&self, label: String) -> Result<CreateAccount, jsonrpc_client::Error<reqwest::Error>> {
-        self.call("create_account", serde_json::json!({ "label": label })).await
+    async fn create_account(
+        &self,
+        label: String,
+    ) -> Result<CreateAccount, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("create_account", serde_json::json!({ "label": label }))
+            .await
     }
 
-    async fn get_accounts(&self, tag: String) -> Result<GetAccounts, jsonrpc_client::Error<reqwest::Error>> {
-        self.call("get_accounts", serde_json::json!({ "tag": tag })).await
+    async fn get_accounts(
+        &self,
+        tag: String,
+    ) -> Result<GetAccounts, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("get_accounts", serde_json::json!({ "tag": tag }))
+            .await
     }
 
-    async fn open_wallet(&self, filename: String) -> Result<WalletOpened, jsonrpc_client::Error<reqwest::Error>> {
-        self.call("open_wallet", serde_json::json!({ "filename": filename })).await
+    async fn open_wallet(
+        &self,
+        filename: String,
+    ) -> Result<WalletOpened, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("open_wallet", serde_json::json!({ "filename": filename }))
+            .await
     }
 
     async fn close_wallet(&self) -> Result<WalletClosed, jsonrpc_client::Error<reqwest::Error>> {
         self.call("close_wallet", serde_json::json!({})).await
     }
 
-    async fn create_wallet(&self, filename: String, language: String) -> Result<WalletCreated, jsonrpc_client::Error<reqwest::Error>> {
-        self.call("create_wallet", serde_json::json!({ "filename": filename, "language": language })).await
+    async fn create_wallet(
+        &self,
+        filename: String,
+        language: String,
+    ) -> Result<WalletCreated, jsonrpc_client::Error<reqwest::Error>> {
+        self.call(
+            "create_wallet",
+            serde_json::json!({ "filename": filename, "language": language }),
+        )
+        .await
     }
 
-    async fn transfer(&self, account_index: u32, destinations: Vec<Destination>, get_tx_key: bool) -> Result<Transfer, jsonrpc_client::Error<reqwest::Error>> {
+    async fn transfer(
+        &self,
+        account_index: u32,
+        destinations: Vec<Destination>,
+        get_tx_key: bool,
+    ) -> Result<Transfer, jsonrpc_client::Error<reqwest::Error>> {
         self.call("transfer", serde_json::json!({ "account_index": account_index, "destinations": destinations, "get_tx_key": get_tx_key })).await
     }
 
@@ -188,11 +235,29 @@ impl BeldexWalletRpc<reqwest::Error> for Client {
         self.call("get_height", serde_json::json!({})).await
     }
 
-    async fn check_tx_key(&self, txid: String, tx_key: String, address: String) -> Result<CheckTxKey, jsonrpc_client::Error<reqwest::Error>> {
-        self.call("check_tx_key", serde_json::json!({ "txid": txid, "tx_key": tx_key, "address": address })).await
+    async fn check_tx_key(
+        &self,
+        txid: String,
+        tx_key: String,
+        address: String,
+    ) -> Result<CheckTxKey, jsonrpc_client::Error<reqwest::Error>> {
+        self.call(
+            "check_tx_key",
+            serde_json::json!({ "txid": txid, "tx_key": tx_key, "address": address }),
+        )
+        .await
     }
 
-    async fn generate_from_keys(&self, filename: String, address: String, spendkey: String, viewkey: String, restore_height: u32, password: String, autosave_current: bool) -> Result<GenerateFromKeys, jsonrpc_client::Error<reqwest::Error>> {
+    async fn generate_from_keys(
+        &self,
+        filename: String,
+        address: String,
+        spendkey: String,
+        viewkey: String,
+        restore_height: u32,
+        password: String,
+        autosave_current: bool,
+    ) -> Result<GenerateFromKeys, jsonrpc_client::Error<reqwest::Error>> {
         self.call("generate_from_keys", serde_json::json!({ "filename": filename, "address": address, "spendkey": spendkey, "viewkey": viewkey, "restore_height": restore_height, "password": password, "autosave_current": autosave_current })).await
     }
 
@@ -200,8 +265,12 @@ impl BeldexWalletRpc<reqwest::Error> for Client {
         self.call("refresh", serde_json::json!({})).await
     }
 
-    async fn sweep_all(&self, address: String) -> Result<SweepAll, jsonrpc_client::Error<reqwest::Error>> {
-        self.call("sweep_all", serde_json::json!({ "address": address })).await
+    async fn sweep_all(
+        &self,
+        address: String,
+    ) -> Result<SweepAll, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("sweep_all", serde_json::json!({ "address": address }))
+            .await
     }
 
     async fn get_version(&self) -> Result<Version, jsonrpc_client::Error<reqwest::Error>> {
@@ -227,12 +296,12 @@ impl fmt::Display for GetBalance {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut total = Decimal::from(self.balance);
         total
-            .set_scale(12)
+            .set_scale(9)
             .expect("12 is smaller than max precision of 28");
 
         let mut unlocked = Decimal::from(self.unlocked_balance);
         unlocked
-            .set_scale(12)
+            .set_scale(9)
             .expect("12 is smaller than max precision of 28");
 
         write!(
