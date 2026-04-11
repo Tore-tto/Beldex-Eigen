@@ -266,7 +266,7 @@ pub fn query_user_for_initial_config(testnet: bool) -> Result<Config> {
         tracing::info!("Running initial setup for testnet");
 
         let bitcoin_network = bitcoin::Network::Testnet;
-        let beldex_network = beldex::Network::Stagenet;
+        let beldex_network = beldex::Network::Testnet;
         let defaults = Testnet::getConfigFileDefaults()?;
 
         (bitcoin_network, beldex_network, defaults)
@@ -436,7 +436,7 @@ mod tests {
             beldex: Beldex {
                 wallet_rpc_url: defaults.beldex_wallet_rpc_url,
                 finality_confirmations: None,
-                network: beldex::Network::Stagenet,
+                network: beldex::Network::Testnet,
             },
             tor: Default::default(),
             maker: Maker {

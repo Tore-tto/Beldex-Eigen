@@ -367,7 +367,7 @@ pub mod beldex_address {
         is_testnet: bool,
     ) -> Result<beldex::Address> {
         let expected_network = if is_testnet {
-            beldex::Network::Stagenet
+            beldex::Network::Testnet
         } else {
             beldex::Network::Mainnet
         };

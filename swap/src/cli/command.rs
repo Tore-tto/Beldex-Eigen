@@ -704,7 +704,7 @@ mod tests {
             err.downcast_ref::<BeldexAddressNetworkMismatch>().unwrap(),
             &BeldexAddressNetworkMismatch {
                 expected: beldex::Network::Mainnet,
-                actual: beldex::Network::Stagenet
+                actual: beldex::Network::Testnet
             }
         );
 
@@ -726,7 +726,7 @@ mod tests {
         assert_eq!(
             err.downcast_ref::<BeldexAddressNetworkMismatch>().unwrap(),
             &BeldexAddressNetworkMismatch {
-                expected: beldex::Network::Stagenet,
+                expected: beldex::Network::Testnet,
                 actual: beldex::Network::Mainnet
             }
         );

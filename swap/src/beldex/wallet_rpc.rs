@@ -33,11 +33,11 @@ const BELDEX_DAEMONS: [BeldexDaemon; 17] = [
     BeldexDaemon::new("testingjohnross.com", 20031, Network::Mainnet),
     BeldexDaemon::new("bdx.litepay.ch", 18081, Network::Mainnet),
     BeldexDaemon::new("node.trocador.app", 18089, Network::Mainnet),
-    BeldexDaemon::new("stagenet.bdx-tw.org", 38081, Network::Stagenet),
-    BeldexDaemon::new("node.beldexdevs.org", 38089, Network::Stagenet),
-    BeldexDaemon::new("singapore.node.bdx.pm", 38081, Network::Stagenet),
-    BeldexDaemon::new("bdx-lux.boldsuck.org", 38081, Network::Stagenet),
-    BeldexDaemon::new("stagenet.community.rino.io", 38081, Network::Stagenet),
+    BeldexDaemon::new("stagenet.bdx-tw.org", 38081, Network::Testnet),
+    BeldexDaemon::new("node.beldexdevs.org", 38089, Network::Testnet),
+    BeldexDaemon::new("singapore.node.bdx.pm", 38081, Network::Testnet),
+    BeldexDaemon::new("bdx-lux.boldsuck.org", 38081, Network::Testnet),
+    BeldexDaemon::new("stagenet.community.rino.io", 38081, Network::Testnet),
 ];
 
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
@@ -270,11 +270,11 @@ impl WalletRpc {
             Network::Mainnet => {
                 vec![]
             }
-            Network::Stagenet => {
-                vec!["--testnet"]
-            }
             Network::Testnet => {
                 vec!["--testnet"]
+            }
+            Network::Stagenet => {
+                vec!["--stagenet"] // Keep stagenet mapping just in case, but prioritize testnet
             }
         };
 
@@ -469,7 +469,7 @@ mod tests {
         let (host, port) = extract_host_and_port(server.host_with_port());
 
         let client = reqwest::Client::new();
-        let result = BeldexDaemon::new(host, port, Network::Stagenet)
+        let result = BeldexDaemon::new(host, port, Network::Testnet)
             .is_available(&client)
             .await;
 

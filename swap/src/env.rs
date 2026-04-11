@@ -72,7 +72,7 @@ impl GetConfig for Testnet {
             bitcoin_network: bitcoin::Network::Testnet,
             beldex_avg_block_time: 2.std_minutes(),
             beldex_finality_confirmations: 10,
-            beldex_network: beldex::Network::Stagenet,
+            beldex_network: beldex::Network::Testnet,
         }
     }
 }
