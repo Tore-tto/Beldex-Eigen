@@ -5,16 +5,22 @@ use beldex::PublicKey;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize, Serializer};
 
-#[jsonrpc_client::api(version = "2.0")]
-pub trait BeldexdRpc {
-    async fn generateblocks(&self, amount_of_blocks: u32, wallet_address: String)
-        -> GenerateBlocks;
-    async fn get_block_header_by_height(&self, height: u32) -> BlockHeader;
-    async fn get_block_count(&self) -> BlockCount;
-    async fn get_block(&self, height: u32) -> GetBlockResponse;
+#[async_trait::async_trait]
+pub trait BeldexdRpc<E: std::error::Error + Send + Sync + 'static> {
+    async fn generateblocks(
+        &self,
+        amount_of_blocks: u32,
+        wallet_address: String,
+    ) -> Result<GenerateBlocks, jsonrpc_client::Error<E>>;
+    async fn get_block_header_by_height(
+        &self,
+        height: u32,
+    ) -> Result<BlockHeader, jsonrpc_client::Error<E>>;
+    async fn get_block_count(&self) -> Result<BlockCount, jsonrpc_client::Error<E>>;
+    async fn get_version(&self) -> Result<Version, jsonrpc_client::Error<E>>;
+    async fn get_block(&self, height: u32) -> Result<GetBlockResponse, jsonrpc_client::Error<E>>;
 }
 
-#[jsonrpc_client::implement(BeldexdRpc)]
 #[derive(Debug, Clone)]
 pub struct Client {
     inner: reqwest::Client,
@@ -44,6 +50,48 @@ impl Client {
                 .parse()
                 .context("url is well formed")?,
         })
+    }
+
+    async fn call<P: Serialize, R: DeserializeOwned>(
+        &self,
+        method: &str,
+        params: P,
+    ) -> Result<R, jsonrpc_client::Error<reqwest::Error>> {
+        let response = self
+            .send_request(method, params)
+            .await
+            .map_err(jsonrpc_client::Error::Client)?;
+
+        if let Some(error) = response.error {
+            return Err(jsonrpc_client::Error::JsonRpc(jsonrpc_client::JsonRpcError {
+                code: error.code,
+                message: error.message,
+                data: error.data,
+            }));
+        }
+
+        Ok(response.result.expect("result or error must be present"))
+    }
+
+    async fn send_request<P: Serialize, R: DeserializeOwned>(
+        &self,
+        method: &str,
+        params: P,
+    ) -> Result<RpcResponse<R>, reqwest::Error> {
+        let request = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": "0", // Force string ID to avoid parsing errors in some Beldex/Monero versions
+            "method": method,
+            "params": params,
+        });
+
+        self.inner
+            .post(self.base_url.clone())
+            .json(&request)
+            .send()
+            .await?
+            .json()
+            .await
     }
 
     pub async fn get_o_indexes(&self, txid: Hash) -> Result<GetOIndexesResponse> {
@@ -81,6 +129,64 @@ impl Client {
     }
 }
 
+#[async_trait::async_trait]
+impl BeldexdRpc<reqwest::Error> for Client {
+    async fn generateblocks(
+        &self,
+        amount_of_blocks: u32,
+        wallet_address: String,
+    ) -> Result<GenerateBlocks, jsonrpc_client::Error<reqwest::Error>> {
+        self.call(
+            "generateblocks",
+            serde_json::json!({
+                "amount_of_blocks": amount_of_blocks,
+                "wallet_address": wallet_address
+            }),
+        )
+        .await
+    }
+
+    async fn get_block_header_by_height(
+        &self,
+        height: u32,
+    ) -> Result<BlockHeader, jsonrpc_client::Error<reqwest::Error>> {
+        self.call(
+            "get_block_header_by_height",
+            serde_json::json!({ "height": height }),
+        )
+        .await
+    }
+
+    async fn get_block_count(&self) -> Result<BlockCount, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("get_block_count", serde_json::json!({})).await
+    }
+
+    async fn get_version(&self) -> Result<Version, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("get_version", serde_json::json!({})).await
+    }
+
+    async fn get_block(&self, height: u32) -> Result<GetBlockResponse, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("get_block", serde_json::json!({ "height": height })).await
+    }
+}
+
+#[derive(Deserialize, Debug)]
+struct RpcResponse<R> {
+    #[allow(dead_code)]
+    pub jsonrpc: String,
+    pub result: Option<R>,
+    pub error: Option<RpcError>,
+    #[allow(dead_code)]
+    pub id: serde_json::Value,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct RpcError {
+    pub code: i64,
+    pub message: String,
+    pub data: Option<serde_json::Value>,
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct GenerateBlocks {
     pub blocks: Vec<String>,
@@ -90,6 +196,11 @@ pub struct GenerateBlocks {
 #[derive(Clone, Copy, Debug, Deserialize)]
 pub struct BlockCount {
     pub count: u32,
+}
+
+#[derive(Debug, Copy, Clone, Deserialize)]
+pub struct Version {
+    pub version: u32,
 }
 
 // We should be able to use beldex-rs for this but it does not include all

@@ -5,23 +5,34 @@ use rust_decimal::Decimal;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize};
 
-#[jsonrpc_client::api(version = "2.0")]
-pub trait BeldexWalletRpc {
-    async fn get_address(&self, account_index: u32) -> GetAddress;
-    async fn get_balance(&self, account_index: u32) -> GetBalance;
-    async fn create_account(&self, label: String) -> CreateAccount;
-    async fn get_accounts(&self, tag: String) -> GetAccounts;
-    async fn open_wallet(&self, filename: String) -> WalletOpened;
-    async fn close_wallet(&self) -> WalletClosed;
-    async fn create_wallet(&self, filename: String, language: String) -> WalletCreated;
+use serde::de::DeserializeOwned;
+
+#[async_trait::async_trait]
+pub trait BeldexWalletRpc<E: std::error::Error + Send + Sync + 'static> {
+    async fn get_address(&self, account_index: u32) -> Result<GetAddress, jsonrpc_client::Error<E>>;
+    async fn get_balance(&self, account_index: u32) -> Result<GetBalance, jsonrpc_client::Error<E>>;
+    async fn create_account(&self, label: String) -> Result<CreateAccount, jsonrpc_client::Error<E>>;
+    async fn get_accounts(&self, tag: String) -> Result<GetAccounts, jsonrpc_client::Error<E>>;
+    async fn open_wallet(&self, filename: String) -> Result<WalletOpened, jsonrpc_client::Error<E>>;
+    async fn close_wallet(&self) -> Result<WalletClosed, jsonrpc_client::Error<E>>;
+    async fn create_wallet(
+        &self,
+        filename: String,
+        language: String,
+    ) -> Result<WalletCreated, jsonrpc_client::Error<E>>;
     async fn transfer(
         &self,
         account_index: u32,
         destinations: Vec<Destination>,
         get_tx_key: bool,
-    ) -> Transfer;
-    async fn get_height(&self) -> BlockHeight;
-    async fn check_tx_key(&self, txid: String, tx_key: String, address: String) -> CheckTxKey;
+    ) -> Result<Transfer, jsonrpc_client::Error<E>>;
+    async fn get_height(&self) -> Result<BlockHeight, jsonrpc_client::Error<E>>;
+    async fn check_tx_key(
+        &self,
+        txid: String,
+        tx_key: String,
+        address: String,
+    ) -> Result<CheckTxKey, jsonrpc_client::Error<E>>;
     #[allow(clippy::too_many_arguments)]
     async fn generate_from_keys(
         &self,
@@ -32,13 +43,12 @@ pub trait BeldexWalletRpc {
         restore_height: u32,
         password: String,
         autosave_current: bool,
-    ) -> GenerateFromKeys;
-    async fn refresh(&self) -> Refreshed;
-    async fn sweep_all(&self, address: String) -> SweepAll;
-    async fn get_version(&self) -> Version;
+    ) -> Result<GenerateFromKeys, jsonrpc_client::Error<E>>;
+    async fn refresh(&self) -> Result<Refreshed, jsonrpc_client::Error<E>>;
+    async fn sweep_all(&self, address: String) -> Result<SweepAll, jsonrpc_client::Error<E>>;
+    async fn get_version(&self) -> Result<Version, jsonrpc_client::Error<E>>;
 }
 
-#[jsonrpc_client::implement(BeldexWalletRpc)]
 #[derive(Debug, Clone)]
 pub struct Client {
     inner: reqwest::Client,
@@ -78,6 +88,124 @@ impl Client {
         }];
 
         Ok(self.transfer(account_index, dest, true).await?)
+    }
+
+    async fn call<P: Serialize, R: DeserializeOwned>(
+        &self,
+        method: &str,
+        params: P,
+    ) -> Result<R, jsonrpc_client::Error<reqwest::Error>> {
+        let response = self
+            .send_request(method, params)
+            .await
+            .map_err(jsonrpc_client::Error::Client)?;
+
+        if let Some(error) = response.error {
+            return Err(jsonrpc_client::Error::JsonRpc(jsonrpc_client::JsonRpcError {
+                code: error.code,
+                message: error.message,
+                data: error.data,
+            }));
+        }
+
+        Ok(response.result.expect("result or error must be present"))
+    }
+
+    async fn send_request<P: Serialize, R: DeserializeOwned>(
+        &self,
+        method: &str,
+        params: P,
+    ) -> Result<RpcResponse<R>, reqwest::Error> {
+        let request = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": "0",
+            "method": method,
+            "params": params,
+        });
+
+        self.inner
+            .post(self.base_url.clone())
+            .json(&request)
+            .send()
+            .await?
+            .json()
+            .await
+    }
+}
+
+#[derive(Deserialize, Debug)]
+struct RpcResponse<R> {
+    #[allow(dead_code)]
+    pub jsonrpc: String,
+    pub result: Option<R>,
+    pub error: Option<RpcError>,
+    #[allow(dead_code)]
+    pub id: serde_json::Value,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct RpcError {
+    pub code: i64,
+    pub message: String,
+    pub data: Option<serde_json::Value>,
+}
+
+#[async_trait::async_trait]
+impl BeldexWalletRpc<reqwest::Error> for Client {
+    async fn get_address(&self, account_index: u32) -> Result<GetAddress, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("get_address", serde_json::json!({ "account_index": account_index })).await
+    }
+
+    async fn get_balance(&self, account_index: u32) -> Result<GetBalance, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("get_balance", serde_json::json!({ "account_index": account_index })).await
+    }
+
+    async fn create_account(&self, label: String) -> Result<CreateAccount, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("create_account", serde_json::json!({ "label": label })).await
+    }
+
+    async fn get_accounts(&self, tag: String) -> Result<GetAccounts, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("get_accounts", serde_json::json!({ "tag": tag })).await
+    }
+
+    async fn open_wallet(&self, filename: String) -> Result<WalletOpened, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("open_wallet", serde_json::json!({ "filename": filename })).await
+    }
+
+    async fn close_wallet(&self) -> Result<WalletClosed, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("close_wallet", serde_json::json!({})).await
+    }
+
+    async fn create_wallet(&self, filename: String, language: String) -> Result<WalletCreated, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("create_wallet", serde_json::json!({ "filename": filename, "language": language })).await
+    }
+
+    async fn transfer(&self, account_index: u32, destinations: Vec<Destination>, get_tx_key: bool) -> Result<Transfer, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("transfer", serde_json::json!({ "account_index": account_index, "destinations": destinations, "get_tx_key": get_tx_key })).await
+    }
+
+    async fn get_height(&self) -> Result<BlockHeight, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("get_height", serde_json::json!({})).await
+    }
+
+    async fn check_tx_key(&self, txid: String, tx_key: String, address: String) -> Result<CheckTxKey, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("check_tx_key", serde_json::json!({ "txid": txid, "tx_key": tx_key, "address": address })).await
+    }
+
+    async fn generate_from_keys(&self, filename: String, address: String, spendkey: String, viewkey: String, restore_height: u32, password: String, autosave_current: bool) -> Result<GenerateFromKeys, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("generate_from_keys", serde_json::json!({ "filename": filename, "address": address, "spendkey": spendkey, "viewkey": viewkey, "restore_height": restore_height, "password": password, "autosave_current": autosave_current })).await
+    }
+
+    async fn refresh(&self) -> Result<Refreshed, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("refresh", serde_json::json!({})).await
+    }
+
+    async fn sweep_all(&self, address: String) -> Result<SweepAll, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("sweep_all", serde_json::json!({ "address": address })).await
+    }
+
+    async fn get_version(&self) -> Result<Version, jsonrpc_client::Error<reqwest::Error>> {
+        self.call("get_version", serde_json::json!({})).await
     }
 }
 
