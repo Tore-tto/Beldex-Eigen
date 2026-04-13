@@ -9,6 +9,9 @@ import {
 } from "@material-ui/core";
 import { Multiaddr } from "multiaddr";
 import { ChangeEvent, useState } from "react";
+import { manualProviderAdded } from "store/features/providersSlice";
+import { useAppDispatch } from "store/hooks";
+import { isTestnet } from "store/config";
 
 type ProviderSubmitDialogProps = {
   open: boolean;
@@ -21,10 +24,12 @@ export default function ProviderSubmitDialog({
 }: ProviderSubmitDialogProps) {
   const [multiAddr, setMultiAddr] = useState("");
   const [peerId, setPeerId] = useState("");
+  const dispatch = useAppDispatch();
 
   async function handleProviderSubmit() {
     if (multiAddr && peerId) {
-      await fetch("https://api.unstoppableswap.net/api/submit-provider", {
+      // We still try to submit to the registry, but we don't wait for it
+      fetch("https://api.unstoppableswap.net/api/submit-provider", {
         method: "post",
         headers: {
           "Content-Type": "application/json",
@@ -33,7 +38,35 @@ export default function ProviderSubmitDialog({
           multiAddr,
           peerId,
         }),
-      });
+      }).catch((e) => console.error("Failed to submit to registry", e));
+
+      // Construct the full multiaddress if it doesn't already contain the peer id
+      let fullMultiAddr = multiAddr;
+      try {
+        const ma = new Multiaddr(multiAddr);
+        if (!ma.protoNames().includes("p2p")) {
+          fullMultiAddr = `${
+            multiAddr.endsWith("/") ? multiAddr.slice(0, -1) : multiAddr
+          }/p2p/${peerId}`;
+        }
+      } catch (e) {
+        // Fallback if parsing fails (though validation should have caught it)
+        fullMultiAddr = `${
+          multiAddr.endsWith("/") ? multiAddr.slice(0, -1) : multiAddr
+        }/p2p/${peerId}`;
+      }
+
+      dispatch(
+        manualProviderAdded({
+          multiAddr: fullMultiAddr,
+          peerId,
+          testnet: isTestnet(),
+          price: 100, // 0.000001 BTC per BDX (placeholder)
+          minSwapAmount: 100000, // 0.001 BTC (placeholder)
+          maxSwapAmount: 10000000, // 0.1 BTC (placeholder)
+        }),
+      );
+
       setMultiAddr("");
       setPeerId("");
       onClose();

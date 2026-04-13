@@ -54,7 +54,7 @@ impl GetConfig for Mainnet {
             bitcoin_punish_timelock: PunishTimelock::new(72),
             bitcoin_network: bitcoin::Network::Bitcoin,
             beldex_avg_block_time: 2.std_minutes(),
-            beldex_finality_confirmations: 10,
+            beldex_finality_confirmations: 2,
             beldex_network: beldex::Network::Mainnet,
         }
     }
@@ -71,7 +71,7 @@ impl GetConfig for Testnet {
             bitcoin_punish_timelock: PunishTimelock::new(6),
             bitcoin_network: bitcoin::Network::Testnet,
             beldex_avg_block_time: 2.std_minutes(),
-            beldex_finality_confirmations: 10,
+            beldex_finality_confirmations: 2,
             beldex_network: beldex::Network::Testnet,
         }
     }
@@ -88,7 +88,7 @@ impl GetConfig for Regtest {
             bitcoin_punish_timelock: PunishTimelock::new(50),
             bitcoin_network: bitcoin::Network::Regtest,
             beldex_avg_block_time: 1.std_seconds(),
-            beldex_finality_confirmations: 10,
+            beldex_finality_confirmations: 2,
             beldex_network: beldex::Network::Mainnet, // yes this is strange
         }
     }

@@ -46,7 +46,10 @@ pub enum Bob {
 #[derive(Clone, strum::Display, Debug, Deserialize, Serialize, PartialEq)]
 pub enum BobEndState {
     SafelyAborted,
-    BeldexRedeemed { tx_lock_id: bitcoin::Txid },
+    BeldexRedeemed {
+        tx_lock_id: bitcoin::Txid,
+        bdx_redeem_txid: crate::beldex::TxHash,
+    },
     BtcRefunded(Box<bob::State6>),
 }
 
@@ -84,9 +87,13 @@ impl From<BobState> for Bob {
             BobState::BtcCancelled(state6) => Bob::BtcCancelled(state6),
             BobState::BtcPunished { state, tx_lock_id } => Bob::BtcPunished { state, tx_lock_id },
             BobState::BtcRefunded(state6) => Bob::Done(BobEndState::BtcRefunded(Box::new(state6))),
-            BobState::BeldexRedeemed { tx_lock_id } => {
-                Bob::Done(BobEndState::BeldexRedeemed { tx_lock_id })
-            }
+            BobState::BeldexRedeemed {
+                tx_lock_id,
+                bdx_redeem_txid,
+            } => Bob::Done(BobEndState::BeldexRedeemed {
+                tx_lock_id,
+                bdx_redeem_txid,
+            }),
             BobState::SafelyAborted => Bob::Done(BobEndState::SafelyAborted),
         }
     }
@@ -127,7 +134,13 @@ impl From<Bob> for BobState {
             Bob::BtcPunished { state, tx_lock_id } => BobState::BtcPunished { state, tx_lock_id },
             Bob::Done(end_state) => match end_state {
                 BobEndState::SafelyAborted => BobState::SafelyAborted,
-                BobEndState::BeldexRedeemed { tx_lock_id } => BobState::BeldexRedeemed { tx_lock_id },
+                BobEndState::BeldexRedeemed {
+                    tx_lock_id,
+                    bdx_redeem_txid,
+                } => BobState::BeldexRedeemed {
+                    tx_lock_id,
+                    bdx_redeem_txid,
+                },
                 BobEndState::BtcRefunded(state6) => BobState::BtcRefunded(*state6),
             },
         }

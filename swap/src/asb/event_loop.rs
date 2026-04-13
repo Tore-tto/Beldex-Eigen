@@ -387,8 +387,8 @@ where
 
         let balance = self.beldex_wallet.get_balance().await?;
 
-        // use unlocked beldex balance for quote
-        let bdx = Amount::from_atomic(balance.unlocked_balance);
+        // use unlocked beldex balance for quote, but reserve some for fees
+        let bdx = Amount::from_atomic(balance.unlocked_balance.saturating_sub(1_000_000_000)); // Reserve 1 BDX for fees (1,000,000,000 atomic units)
 
         let max_bitcoin_for_beldex = bdx.max_bitcoin_for_price(ask_price).ok_or_else(|| {
             anyhow::anyhow!("Bitcoin price ({}) x Beldex ({}) overflow", ask_price, bdx)

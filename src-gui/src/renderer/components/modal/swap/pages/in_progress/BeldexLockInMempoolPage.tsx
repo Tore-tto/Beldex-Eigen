@@ -6,7 +6,7 @@ export default function BeldexLockTxInMempoolPage({
   bdx_lock_tx_confirmations,
   bdx_lock_txid,
 }: TauriSwapProgressEventContent<"BeldexLockTxInMempool">) {
-  const additionalContent = `Confirmations: ${bdx_lock_tx_confirmations}/10`;
+  const additionalContent = `Confirmations: ${bdx_lock_tx_confirmations}/2`;
 
   return (
     <Box>

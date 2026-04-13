@@ -10,31 +10,30 @@ export function piconerosToBeldex(piconeros: number): number {
   return piconeros / 1000000000000;
 }
 
-export function isBeldexAddressValid(address: string, stagenet: boolean) {
-  const re = stagenet
-    ? "[57][0-9AB][1-9A-HJ-NP-Za-km-z]{93}"
-    : "[48][0-9AB][1-9A-HJ-NP-Za-km-z]{93}";
+export function isBeldexAddressValid(address: string, testnet: boolean) {
+  const re = testnet
+    ? "[9AL][1-9A-HJ-NP-Za-km-z]{94,105}"
+    : "b[1-9A-HJ-NP-Za-km-z]{96,106}";
   return new RegExp(`(?:^${re}$)`).test(address);
 }
 
 export function isBtcAddressValid(address: string, testnet: boolean) {
   const re = testnet
-    ? "(tb1)[a-zA-HJ-NP-Z0-9]{25,49}"
-    : "(bc1)[a-zA-HJ-NP-Z0-9]{25,49}";
+    ? "(tb1|[mn2])[a-zA-HJ-NP-Z0-9]{25,62}"
+    : "(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}";
   return new RegExp(`(?:^${re}$)`).test(address);
 }
 
 export function getBitcoinTxExplorerUrl(txid: string, testnet: boolean) {
-  return `https://blockchair.com/bitcoin${
-    testnet ? "/testnet" : ""
-  }/transaction/${txid}`;
+  return `https://blockchair.com/bitcoin${testnet ? "/testnet" : ""
+    }/transaction/${txid}`;
 }
 
-export function getBeldexTxExplorerUrl(txid: string, stagenet: boolean) {
-  if (stagenet) {
-    return `https://stagenet.bdxchain.net/tx/${txid}`;
+export function getBeldexTxExplorerUrl(txid: string, testnet: boolean) {
+  if (testnet) {
+    return `http://154.26.139.105/tx/${txid}`;
   }
-  return `https://bdxchain.net/tx/${txid}`;
+  return `https://explorer.beldex.io/tx/${txid}`;
 }
 
 export function secondsToDays(seconds: number): number {

@@ -164,7 +164,7 @@ pub fn run() {
             get_balance,
             get_swap_infos_all,
             withdraw_btc,
-            buy_beldex,
+            buy_bdx,
             resume_swap,
             get_history,
             beldex_recovery,
@@ -202,7 +202,7 @@ pub fn run() {
 // The commands are defined using the `tauri_command!` macro.
 // Implementations are handled by the Request trait
 tauri_command!(get_balance, BalanceArgs);
-tauri_command!(buy_beldex, BuyBeldexArgs);
+tauri_command!(buy_bdx, BuyBeldexArgs);
 tauri_command!(resume_swap, ResumeSwapArgs);
 tauri_command!(withdraw_btc, WithdrawBtcArgs);
 tauri_command!(beldex_recovery, BeldexRecoveryArgs);

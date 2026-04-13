@@ -93,6 +93,23 @@ export const providersSlice = createSlice({
     increaseFailedRegistryReconnectAttemptsSinceLastSuccess(slice) {
       slice.registry.failedReconnectAttemptsSinceLastSuccess += 1;
     },
+    manualProviderAdded(slice, action: PayloadAction<ExtendedProviderStatus>) {
+      const newProvider = action.payload;
+      if (
+        !slice.rendezvous.providers.some(
+          (prov) =>
+            prov.peerId === newProvider.peerId &&
+            prov.multiAddr === newProvider.multiAddr,
+        )
+      ) {
+        slice.rendezvous.providers.push(newProvider);
+      }
+      slice.rendezvous.providers = sortProviderList(slice.rendezvous.providers);
+      slice.selectedProvider = selectNewSelectedProvider(
+        slice,
+        newProvider.peerId,
+      );
+    },
     setSelectedProvider(
       slice,
       action: PayloadAction<{
@@ -111,6 +128,7 @@ export const {
   discoveredProvidersByRendezvous,
   setRegistryProviders,
   increaseFailedRegistryReconnectAttemptsSinceLastSuccess,
+  manualProviderAdded,
   setSelectedProvider,
 } = providersSlice.actions;
 

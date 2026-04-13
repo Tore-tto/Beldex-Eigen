@@ -308,21 +308,26 @@ async fn next_state(
         BobState::BtcRedeemed(state) => {
             event_emitter.emit_swap_progress_event(swap_id, TauriSwapProgressEvent::BtcRedeemed);
 
-            state
+            let tx_hashes = state
                 .redeem_bdx(beldex_wallet, swap_id.to_string(), beldex_receive_address)
                 .await?;
+
+            let bdx_redeem_txid = tx_hashes
+                .first()
+                .cloned()
+                .unwrap_or_else(|| beldex::TxHash("unknown".to_string()));
 
             event_emitter.emit_swap_progress_event(
                 swap_id,
                 TauriSwapProgressEvent::BeldexRedeemInMempool {
-                    // TODO: Replace this with the actual txid
-                    bdx_redeem_txid: beldex::TxHash("placeholder".to_string()),
+                    bdx_redeem_txid: bdx_redeem_txid.clone(),
                     bdx_redeem_address: beldex_receive_address,
                 },
             );
 
             BobState::BeldexRedeemed {
                 tx_lock_id: state.tx_lock_id(),
+                bdx_redeem_txid,
             }
         }
         BobState::CancelTimelockExpired(state4) => {
@@ -402,16 +407,24 @@ async fn next_state(
                         .redeem_bdx(beldex_wallet, swap_id.to_string(), beldex_receive_address)
                         .await
                     {
-                        Ok(_) => {
+                        Ok(tx_hashes) => {
+                            let bdx_redeem_txid = tx_hashes
+                                .first()
+                                .cloned()
+                                .unwrap_or_else(|| beldex::TxHash("unknown".to_string()));
+
                             event_emitter.emit_swap_progress_event(
                                 swap_id,
                                 TauriSwapProgressEvent::BeldexRedeemInMempool {
-                                    bdx_redeem_txid: beldex::TxHash("placeholder".to_string()),
+                                    bdx_redeem_txid: bdx_redeem_txid.clone(),
                                     bdx_redeem_address: beldex_receive_address,
                                 },
                             );
 
-                            return Ok(BobState::BeldexRedeemed { tx_lock_id });
+                            return Ok(BobState::BeldexRedeemed {
+                                tx_lock_id,
+                                bdx_redeem_txid,
+                            });
                         }
                         Err(error) => {
                             event_emitter.emit_swap_progress_event(
@@ -465,16 +478,21 @@ async fn next_state(
             };
         }
         BobState::SafelyAborted => BobState::SafelyAborted,
-        BobState::BeldexRedeemed { tx_lock_id } => {
-            // TODO: Replace this with the actual txid
+        BobState::BeldexRedeemed {
+            tx_lock_id,
+            bdx_redeem_txid,
+        } => {
             event_emitter.emit_swap_progress_event(
                 swap_id,
                 TauriSwapProgressEvent::BeldexRedeemInMempool {
-                    bdx_redeem_txid: beldex::TxHash("placeholder".to_string()),
+                    bdx_redeem_txid: bdx_redeem_txid.clone(),
                     bdx_redeem_address: beldex_receive_address,
                 },
             );
-            BobState::BeldexRedeemed { tx_lock_id }
+            BobState::BeldexRedeemed {
+                tx_lock_id,
+                bdx_redeem_txid,
+            }
         }
     })
 }

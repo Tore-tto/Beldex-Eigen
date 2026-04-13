@@ -46,6 +46,7 @@ pub enum BobState {
     BtcRefunded(State6),
     BeldexRedeemed {
         tx_lock_id: bitcoin::Txid,
+        bdx_redeem_txid: beldex::TxHash,
     },
     BtcPunished {
         state: State6,
@@ -627,7 +628,7 @@ impl State5 {
         beldex_wallet: &beldex::Wallet,
         wallet_file_name: std::string::String,
         beldex_receive_address: beldex::Address,
-    ) -> Result<()> {
+    ) -> Result<Vec<beldex::TxHash>> {
         let (spend_key, view_key) = self.bdx_keys();
 
         tracing::info!(%wallet_file_name, "Generating and opening Beldex wallet from the extracted keys to redeem the Beldex");
@@ -654,10 +655,10 @@ impl State5 {
         beldex_wallet.refresh(20).await?;
         // Sweep (transfer all funds) to the given address
         let tx_hashes = beldex_wallet.sweep_all(beldex_receive_address).await?;
-        for tx_hash in tx_hashes {
+        for tx_hash in &tx_hashes {
             tracing::info!(%beldex_receive_address, txid=%tx_hash.0, "Successfully transferred BDX to wallet");
         }
-        Ok(())
+        Ok(tx_hashes)
     }
 }
 
