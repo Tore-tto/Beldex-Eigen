@@ -31,7 +31,6 @@ pub trait BeldexWalletRpc<E: std::error::Error + Send + Sync + 'static> {
         account_index: u32,
         destinations: Vec<Destination>,
         get_tx_key: bool,
-        priority: u32,
     ) -> Result<Transfer, jsonrpc_client::Error<E>>;
     async fn get_height(&self) -> Result<BlockHeight, jsonrpc_client::Error<E>>;
     async fn check_tx_key(
@@ -55,7 +54,6 @@ pub trait BeldexWalletRpc<E: std::error::Error + Send + Sync + 'static> {
     async fn sweep_all(
         &self,
         address: String,
-        priority: u32,
     ) -> Result<SweepAll, jsonrpc_client::Error<E>>;
     async fn get_version(&self) -> Result<Version, jsonrpc_client::Error<E>>;
 }
@@ -98,7 +96,7 @@ impl Client {
             address: address.to_owned(),
         }];
 
-        Ok(self.transfer(account_index, dest, true, 0).await?)
+        Ok(self.transfer(account_index, dest, true).await?)
     }
 
     async fn call<P: Serialize, R: DeserializeOwned>(
@@ -131,7 +129,7 @@ impl Client {
     async fn send_request<P: Serialize>(&self, method: &str, params: P) -> Result<String, reqwest::Error> {
         let request = serde_json::json!({
             "jsonrpc": "2.0",
-            "id": "0",
+            "id": "1",
             "method": method,
             "params": params,
         });
@@ -247,7 +245,6 @@ impl BeldexWalletRpc<reqwest::Error> for Client {
         account_index: u32,
         destinations: Vec<Destination>,
         get_tx_key: bool,
-        priority: u32,
     ) -> Result<Transfer, jsonrpc_client::Error<reqwest::Error>> {
         self.call(
             "transfer",
@@ -255,7 +252,6 @@ impl BeldexWalletRpc<reqwest::Error> for Client {
                 "account_index": account_index,
                 "destinations": destinations,
                 "get_tx_key": get_tx_key,
-                "priority": priority
             }),
         )
         .await
@@ -298,11 +294,10 @@ impl BeldexWalletRpc<reqwest::Error> for Client {
     async fn sweep_all(
         &self,
         address: String,
-        priority: u32,
     ) -> Result<SweepAll, jsonrpc_client::Error<reqwest::Error>> {
         self.call(
             "sweep_all",
-            serde_json::json!({ "address": address, "priority": priority }),
+            serde_json::json!({ "address": address }),
         )
         .await
     }
