@@ -76,6 +76,7 @@ export const providersSlice = createSlice({
       });
 
       slice.rendezvous.providers = sortProviderList(slice.rendezvous.providers);
+      slice.selectedProvider = selectNewSelectedProvider(slice);
     },
     setRegistryProviders(
       slice,
