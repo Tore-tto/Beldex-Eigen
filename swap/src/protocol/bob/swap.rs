@@ -85,13 +85,16 @@ async fn next_state(
             btc_amount,
             change_address,
         } => {
+            tracing::debug!("Estimating tx_refund_fee");
             let tx_refund_fee = bitcoin_wallet
                 .estimate_fee(TxRefund::weight(), btc_amount)
                 .await?;
+            tracing::debug!("Estimating tx_cancel_fee");
             let tx_cancel_fee = bitcoin_wallet
                 .estimate_fee(TxCancel::weight(), btc_amount)
                 .await?;
 
+            tracing::debug!("Setting up swap with Alice");
             let state2 = event_loop_handle
                 .setup_swap(NewSwap {
                     swap_id,

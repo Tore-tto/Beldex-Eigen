@@ -407,7 +407,11 @@ where
         let max_seconds = self.timeout.as_secs();
         self.inbound_stream = OptionFuture::from(Some(
             async move {
-                protocol.await.with_context(|| {
+                let result = protocol.await;
+                if let Err(ref e) = result {
+                    tracing::error!("Failed to complete execution setup: {:#}", e);
+                }
+                result.with_context(|| {
                     format!("Failed to complete execution setup within {}s", max_seconds)
                 })?
             }

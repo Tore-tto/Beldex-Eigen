@@ -32,7 +32,7 @@ pub const DEFAULT_ELECTRUM_RPC_URL_TESTNET: &str = "ssl://electrum.blockstream.i
 pub const DEFAULT_ELECTRUM_HTTP_URL_TESTNET: &str = "https://blockstream.info/testnet/api/";
 
 const DEFAULT_BITCOIN_CONFIRMATION_TARGET: usize = 1;
-pub const DEFAULT_BITCOIN_CONFIRMATION_TARGET_TESTNET: usize = 1;
+pub const DEFAULT_BITCOIN_CONFIRMATION_TARGET_TESTNET: usize = 2;
 
 const DEFAULT_TOR_SOCKS5_PORT: &str = "9050";
 

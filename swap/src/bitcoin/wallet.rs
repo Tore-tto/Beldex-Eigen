@@ -870,7 +870,33 @@ impl EstimateFeeRate for Client {
     fn estimate_feerate(&self, target_block: usize) -> Result<FeeRate> {
         // https://github.com/romanz/electrs/blob/f9cf5386d1b5de6769ee271df5eef324aa9491bc/src/rpc.rs#L213
         // Returned estimated fees are per BTC/kb.
-        let fee_per_byte = self.electrum.estimate_fee(target_block)?;
+        let fee_per_byte = match self.electrum.estimate_fee(target_block) {
+            Ok(fee) => fee,
+            Err(e) => {
+                let error_msg = e.to_string();
+                if error_msg.contains("cannot estimate fee") || error_msg.contains("not enough data") {
+                    tracing::warn!(%target_block, "Electrum could not estimate fee for target block, trying fallback target 10");
+                    match self.electrum.estimate_fee(10) {
+                        Ok(fee) => fee,
+                        Err(_) => {
+                            tracing::warn!("Electrum could not estimate fee for fallback target 10, using relay fee");
+                            self.electrum.relay_fee().unwrap_or(0.00001) // Fallback to 1 sat/vbyte if relay_fee also fails
+                        }
+                    }
+                } else {
+                    tracing::error!(%target_block, "Electrum fee estimation failed: {:#}", e);
+                    return Err(e.into());
+                }
+            }
+        };
+
+        // Ensure we have a sane minimum (1.1 sat/vbyte = 0.000011 BTC/kvb)
+        let fee_per_byte = if fee_per_byte <= 0.00001 {
+            0.000011
+        } else {
+            fee_per_byte
+        };
+
         // we do not expect fees being that high.
         #[allow(clippy::cast_possible_truncation)]
         Ok(FeeRate::from_btc_per_kvb(fee_per_byte as f32))
