@@ -164,7 +164,10 @@ impl EventLoop {
                                 );
 
                                 // Treat the rendezvous node itself as a potential seller
+                                let address = endpoint.get_remote_address();
+                                self.reachable_asb_address.insert(peer_id, address.clone());
                                 self.asb_quote_status.insert(peer_id, QuoteStatus::Pending);
+                                self.swarm.behaviour_mut().quote.add_address(&peer_id, address.clone());
                                 self.swarm.behaviour_mut().quote.send_request(&peer_id, ());
                             } else {
                                 let address = endpoint.get_remote_address();
