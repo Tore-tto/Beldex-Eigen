@@ -14,8 +14,13 @@ import {
 import { Multiaddr } from "multiaddr";
 import { useSnackbar } from "notistack";
 import { ChangeEvent, useState } from "react";
+import { useDispatch } from "react-redux";
 import PromiseInvokeButton from "renderer/components/PromiseInvokeButton";
 import { listSellers } from "renderer/rpc";
+import { discoveredProvidersByRendezvous } from "store/features/providersSlice";
+import { isTestnet } from "store/config";
+import { Seller } from "models/tauriModel";
+import { ProviderStatus } from "models/apiModel";
 
 const PRESET_RENDEZVOUS_POINTS = [
   "/ip4/194.5.152.31/tcp/9939/p2p/12D3KooWNQGN39V6je7sgQBEjuKEMMNEeA5fPUbX4YMm2nrGocpF",
@@ -40,6 +45,7 @@ export default function ListSellersDialog({
   onClose,
 }: ListSellersDialogProps) {
   const classes = useStyles();
+  const dispatch = useDispatch();
   const [rendezvousAddress, setRendezvousAddress] = useState("");
   const { enqueueSnackbar } = useSnackbar();
 
@@ -59,8 +65,28 @@ export default function ListSellersDialog({
     }
   }
 
-  function handleSuccess(amountOfSellers: number) {
+  function handleSuccess(sellers: Seller[]) {
+    const providers: ProviderStatus[] = sellers
+      .filter((seller: any) => seller.status.type === "Online")
+      .map((seller: any) => {
+        const quote = seller.status.content;
+        const multiaddr = new Multiaddr(seller.multiaddr);
+        const peerId = multiaddr.getPeerId();
+
+        return {
+          multiAddr: multiaddr.decapsulate("/p2p/" + peerId).toString(),
+          peerId: peerId!,
+          testnet: isTestnet(),
+          price: quote.price,
+          minSwapAmount: quote.min_quantity,
+          maxSwapAmount: quote.max_quantity,
+        };
+      });
+
+    dispatch(discoveredProvidersByRendezvous(providers));
+
     let message: string;
+    const amountOfSellers = sellers.length;
 
     switch (amountOfSellers) {
       case 0:
@@ -74,7 +100,7 @@ export default function ListSellersDialog({
     }
 
     enqueueSnackbar(message, {
-      variant: "success",
+      variant: amountOfSellers > 0 ? "success" : "warning",
       autoHideDuration: 5000,
     });
 
@@ -127,8 +153,7 @@ export default function ListSellersDialog({
           onSuccess={handleSuccess}
           displayErrorSnackbar
           onInvoke={async () => {
-            const sellers = await listSellers(rendezvousAddress);
-            return sellers.length;
+            return await listSellers(rendezvousAddress);
           }}
         >
           Connect

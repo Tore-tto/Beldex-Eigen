@@ -14,6 +14,7 @@ use serde_with::{serde_as, DisplayFromStr};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::time::Duration;
+use typeshare::typeshare;
 
 /// Returns sorted list of sellers, with [Online](Status::Online) listed first.
 ///
@@ -59,15 +60,19 @@ pub async fn list_sellers(
     Ok(sellers)
 }
 
+#[typeshare]
 #[serde_as]
 #[derive(Debug, Serialize, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct Seller {
     pub status: Status,
+    #[typeshare(serialized_as = "string")]
     #[serde_as(as = "DisplayFromStr")]
     pub multiaddr: Multiaddr,
 }
 
+#[typeshare]
 #[derive(Debug, Serialize, PartialEq, Eq, Hash, Copy, Clone, Ord, PartialOrd)]
+#[serde(tag = "type", content = "content")]
 pub enum Status {
     Online(BidQuote),
     Unreachable,
