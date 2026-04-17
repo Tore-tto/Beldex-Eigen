@@ -1,4 +1,4 @@
-use crate::bitcoin::wallet::{EstimateFeeRate, Subscription};
+use crate::bitcoin::wallet::{EstimateFeeRate, Subscription, Watchable};
 use crate::bitcoin::{
     self, current_epoch, CancelTimelock, ExpiredTimelocks, PunishTimelock, Transaction, TxCancel,
     TxLock, Txid,
@@ -511,20 +511,27 @@ impl State4 {
             bitcoin::TxRedeem::new(&self.tx_lock, &self.redeem_address, self.tx_redeem_fee);
         let tx_redeem_encsig = self.b.encsign(self.S_a_bitcoin, tx_redeem.digest());
 
-        let tx_redeem_candidate = bitcoin_wallet.get_raw_transaction(tx_redeem.txid()).await?;
+        let history = bitcoin_wallet.script_history_for(&tx_redeem.script()).await?;
+        for tx_hash in history {
+            let tx_redeem_candidate = bitcoin_wallet.get_raw_transaction(tx_hash).await?;
 
-        let tx_redeem_sig =
-            tx_redeem.extract_signature_by_key(tx_redeem_candidate, self.b.public())?;
-        let s_a = bitcoin::recover(self.S_a_bitcoin, tx_redeem_sig, tx_redeem_encsig)?;
-        let s_a = beldex::private_key_from_secp256k1_scalar(s_a.into());
+            if let Ok(tx_redeem_sig) =
+                tx_redeem.extract_signature_by_key(tx_redeem_candidate, self.b.public())
+            {
+                let s_a = bitcoin::recover(self.S_a_bitcoin, tx_redeem_sig, tx_redeem_encsig)?;
+                let s_a = beldex::private_key_from_secp256k1_scalar(s_a.into());
 
-        Ok(State5 {
-            s_a,
-            s_b: self.s_b,
-            v: self.v,
-            tx_lock: self.tx_lock.clone(),
-            beldex_wallet_restore_blockheight: self.beldex_wallet_restore_blockheight,
-        })
+                return Ok(State5 {
+                    s_a,
+                    s_b: self.s_b,
+                    v: self.v,
+                    tx_lock: self.tx_lock.clone(),
+                    beldex_wallet_restore_blockheight: self.beldex_wallet_restore_blockheight,
+                });
+            }
+        }
+
+        bail!("No valid Bitcoin redeem transaction found in history")
     }
 
     pub fn tx_redeem_encsig(&self) -> bitcoin::EncryptedSignature {
@@ -719,9 +726,19 @@ impl State6 {
     ) -> Result<Transaction> {
         let tx_cancel = self.construct_tx_cancel()?;
 
-        let tx = bitcoin_wallet.get_raw_transaction(tx_cancel.txid()).await?;
+        let history = bitcoin_wallet
+            .script_history_for(&tx_cancel.script())
+            .await?;
 
-        Ok(tx)
+        for tx_hash in history {
+            if let Ok(tx) = bitcoin_wallet.get_raw_transaction(tx_hash).await {
+                // If it's a valid transaction for this script, we consider it found
+                // We use first valid one we find in history
+                return Ok(tx);
+            }
+        }
+
+        bail!("No Bitcoin cancel transaction found in history")
     }
 
     pub async fn submit_tx_cancel(
@@ -738,7 +755,32 @@ impl State6 {
         Ok((tx_id, subscription))
     }
 
+    pub async fn check_for_tx_refund(
+        &self,
+        bitcoin_wallet: &bitcoin::Wallet,
+    ) -> Result<Transaction> {
+        let signed_tx_refund = self.signed_refund_transaction()?;
+
+        let history = bitcoin_wallet
+            .script_history_for(&signed_tx_refund.output[0].script_pubkey)
+            .await?;
+
+        for tx_hash in history {
+            if let Ok(tx) = bitcoin_wallet.get_raw_transaction(tx_hash).await {
+                // If it's a valid transaction for this script, we consider it found
+                return Ok(tx);
+            }
+        }
+
+        bail!("No Bitcoin refund transaction found in history")
+    }
+
     pub async fn publish_refund_btc(&self, bitcoin_wallet: &bitcoin::Wallet) -> Result<()> {
+        if self.check_for_tx_refund(bitcoin_wallet).await.is_ok() {
+            tracing::info!("Bitcoin refund transaction already published");
+            return Ok(());
+        }
+
         let signed_tx_refund = self.signed_refund_transaction()?;
         bitcoin_wallet.broadcast(signed_tx_refund, "refund").await?;
 

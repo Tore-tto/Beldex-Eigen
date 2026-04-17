@@ -150,6 +150,10 @@ impl Wallet {
         self.client.lock().await.status_of_script(tx)
     }
 
+    pub async fn script_history_for(&self, script: &Script) -> Result<Vec<Txid>> {
+        self.client.lock().await.script_history_for(script)
+    }
+
     pub async fn subscribe_to(&self, tx: impl Watchable + Send + 'static) -> Subscription {
         let txid = tx.id();
         let script = tx.script();
@@ -820,6 +824,20 @@ impl Client {
         }
     }
 
+    fn script_history_for(&mut self, script: &Script) -> Result<Vec<Txid>> {
+        if !self.script_history.contains_key(script) {
+            self.script_history.insert(script.clone(), vec![]);
+            self.update_state(true)?;
+        } else {
+            self.update_state(false)?;
+        }
+
+        let history = self.script_history.get(script)
+            .map(|h| h.iter().map(|entry| entry.tx_hash).collect())
+            .unwrap_or_default();
+        Ok(history)
+    }
+
     fn update_latest_block(&mut self) -> Result<()> {
         // Fetch the latest block for storing the height.
         // We do not act on this subscription after this call, as we cannot rely on
@@ -890,9 +908,10 @@ impl EstimateFeeRate for Client {
             }
         };
 
-        // Ensure we have a sane minimum (1.1 sat/vbyte = 0.000011 BTC/kvb)
-        let fee_per_byte = if fee_per_byte <= 0.00001 {
-            0.000011
+        // Ensure we have a sane minimum that satisfies RBF rules (1.5 sat/vbyte = 0.000015 BTC/kvb)
+        // This prevents "insufficient fee" errors when retrying transactions.
+        let fee_per_byte = if fee_per_byte <= 0.000015 {
+            0.000015
         } else {
             fee_per_byte
         };
