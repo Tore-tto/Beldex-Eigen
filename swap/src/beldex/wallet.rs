@@ -1,7 +1,7 @@
+use crate::env::Config;
 use crate::beldex::{
     Amount, InsufficientFunds, PrivateViewKey, PublicViewKey, TransferProof, TxHash,
 };
-use crate::env::Config;
 use ::beldex::{Address, Network, PrivateKey, PublicKey};
 use anyhow::{Context, Result};
 use beldex_rpc::wallet::{BeldexWalletRpc as _, BlockHeight, Refreshed};
@@ -424,12 +424,13 @@ mod tests {
         let client = Mutex::new(DummyClient::new(vec![Ok(CheckTxKey {
             confirmations: 10,
             received: 100,
-            in_pool: false,
         })]));
 
         let result = wait_for_confirmations(
             &client,
-            TransferProof::new(TxHash("<FOO>".to_owned()), "tx_key".to_owned()),
+            TransferProof::new(TxHash("<FOO>".to_owned()), PrivateKey {
+                scalar: crate::beldex::Scalar::random(&mut rand::thread_rng())
+            }),
             "53H3QthYLckeCXh9u38vohb2gZ4QgEG3FMWHNxccR6MqV1LdDVYwF1FKsRJPj4tTupWLf9JtGPBcn2MVN6c9oR7p5Uf7JdJ".parse().unwrap(),
             Amount::from_atomic(100),
             10,
@@ -457,33 +458,30 @@ mod tests {
             Ok(CheckTxKey {
                 confirmations: 1,
                 received: 100,
-                in_pool: false,
             }),
             Ok(CheckTxKey {
                 confirmations: 1,
                 received: 100,
-                in_pool: false,
             }),
             Ok(CheckTxKey {
                 confirmations: 1,
                 received: 100,
-                in_pool: false,
             }),
             Ok(CheckTxKey {
                 confirmations: 3,
                 received: 100,
-                in_pool: false,
             }),
             Ok(CheckTxKey {
                 confirmations: 5,
                 received: 100,
-                in_pool: false,
             }),
         ]));
 
         wait_for_confirmations(
             &client,
-            TransferProof::new(TxHash("<FOO>".to_owned()), "tx_key".to_owned()),
+            TransferProof::new(TxHash("<FOO>".to_owned()), PrivateKey {
+                scalar: crate::beldex::Scalar::random(&mut rand::thread_rng())
+            }),
             "53H3QthYLckeCXh9u38vohb2gZ4QgEG3FMWHNxccR6MqV1LdDVYwF1FKsRJPj4tTupWLf9JtGPBcn2MVN6c9oR7p5Uf7JdJ".parse().unwrap(),
             Amount::from_atomic(100),
             5,
@@ -510,23 +508,19 @@ mod tests {
             Ok(CheckTxKey {
                 confirmations: 1,
                 received: 100,
-                in_pool: false,
             }),
             Ok(CheckTxKey {
                 confirmations: 1,
                 received: 100,
-                in_pool: false,
             }),
             Err((-13, "No wallet file".to_owned())),
             Ok(CheckTxKey {
                 confirmations: 3,
                 received: 100,
-                in_pool: false,
             }),
             Ok(CheckTxKey {
                 confirmations: 5,
                 received: 100,
-                in_pool: false,
             }),
         ]));
 
@@ -586,31 +580,19 @@ DEBUG swap::beldex::wallet: Opening wallet `foo-wallet` because no wallet is loa
 
     #[async_trait::async_trait]
     impl beldex_rpc::wallet::BeldexWalletRpc<reqwest::Error> for DummyClient {
-        async fn get_address(
-            &self,
-            _: u32,
-        ) -> Result<wallet::GetAddress, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
+        async fn get_address(&self, _: u32) -> Result<wallet::GetAddress, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
             todo!()
         }
 
-        async fn get_balance(
-            &self,
-            _: u32,
-        ) -> Result<wallet::GetBalance, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
+        async fn get_balance(&self, _: u32) -> Result<wallet::GetBalance, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
             todo!()
         }
 
-        async fn create_account(
-            &self,
-            _: String,
-        ) -> Result<wallet::CreateAccount, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
+        async fn create_account(&self, _: String) -> Result<wallet::CreateAccount, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
             todo!()
         }
 
-        async fn get_accounts(
-            &self,
-            _: String,
-        ) -> Result<wallet::GetAccounts, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
+        async fn get_accounts(&self, _: String) -> Result<wallet::GetAccounts, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
             todo!()
         }
 
@@ -623,32 +605,19 @@ DEBUG swap::beldex::wallet: Opening wallet `foo-wallet` because no wallet is loa
             Ok(beldex_rpc::wallet::Empty {})
         }
 
-        async fn close_wallet(
-            &self,
-        ) -> Result<wallet::WalletClosed, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
+        async fn close_wallet(&self) -> Result<wallet::WalletClosed, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
             todo!()
         }
 
-        async fn create_wallet(
-            &self,
-            _: String,
-            _: String,
-        ) -> Result<wallet::WalletCreated, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
+        async fn create_wallet(&self, _: String, _: String) -> Result<wallet::WalletCreated, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
             todo!()
         }
 
-        async fn transfer(
-            &self,
-            _: u32,
-            _: Vec<wallet::Destination>,
-            _: bool,
-        ) -> Result<wallet::Transfer, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
+        async fn transfer(&self, _: u32, _: Vec<wallet::Destination>, _: bool) -> Result<wallet::Transfer, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
             todo!()
         }
 
-        async fn get_height(
-            &self,
-        ) -> Result<wallet::BlockHeight, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
+        async fn get_height(&self) -> Result<wallet::BlockHeight, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
             todo!()
         }
 
@@ -671,35 +640,19 @@ DEBUG swap::beldex::wallet: Opening wallet `foo-wallet` because no wallet is loa
                 })
         }
 
-        async fn generate_from_keys(
-            &self,
-            _: String,
-            _: String,
-            _: String,
-            _: String,
-            _: u32,
-            _: String,
-            _: bool,
-        ) -> Result<wallet::GenerateFromKeys, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
+        async fn generate_from_keys(&self, _: String, _: String, _: String, _: String, _: u32, _: String, _: bool) -> Result<wallet::GenerateFromKeys, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
             todo!()
         }
 
-        async fn refresh(
-            &self,
-        ) -> Result<wallet::Refreshed, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
+        async fn refresh(&self) -> Result<wallet::Refreshed, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
             todo!()
         }
 
-        async fn sweep_all(
-            &self,
-            _: String,
-        ) -> Result<wallet::SweepAll, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
+        async fn sweep_all(&self, _: String) -> Result<wallet::SweepAll, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
             todo!()
         }
 
-        async fn get_version(
-            &self,
-        ) -> Result<wallet::Version, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
+        async fn get_version(&self) -> Result<wallet::Version, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
             todo!()
         }
     }
