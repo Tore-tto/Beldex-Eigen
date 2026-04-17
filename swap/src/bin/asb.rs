@@ -203,6 +203,12 @@ pub async fn main() -> Result<()> {
                     .with_context(|| format!("Failed to listen on network interface {}", listen))?;
             }
 
+            if config.network.rendezvous_server {
+                tracing::info!("Integrated rendezvous server is ENABLED");
+            } else {
+                tracing::debug!("Integrated rendezvous server is DISABLED");
+            }
+
             tracing::info!(peer_id = %swarm.local_peer_id(), "Network layer initialized");
 
             for external_address in config.network.external_addresses {
