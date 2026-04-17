@@ -84,6 +84,7 @@ pub mod behaviour {
             peer: PeerId,
         },
         Rendezvous(libp2p::rendezvous::client::Event),
+        RendezvousServer(libp2p::rendezvous::server::Event),
         Failure {
             peer: PeerId,
             error: Error,
@@ -205,8 +206,8 @@ pub mod behaviour {
     }
 
     impl From<libp2p::rendezvous::server::Event> for OutEvent {
-        fn from(_: libp2p::rendezvous::server::Event) -> Self {
-            OutEvent::Other
+        fn from(event: libp2p::rendezvous::server::Event) -> Self {
+            OutEvent::RendezvousServer(event)
         }
     }
 }
