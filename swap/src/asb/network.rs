@@ -237,6 +237,7 @@ pub mod rendezvous {
         inner: libp2p::rendezvous::client::Behaviour,
         rendezvous_nodes: Vec<RendezvousNode>,
         to_dial: VecDeque<PeerId>,
+        local_peer_id: PeerId,
     }
 
     pub struct RendezvousNode {
@@ -277,9 +278,10 @@ pub mod rendezvous {
     impl Behaviour {
         pub fn new(identity: identity::Keypair, rendezvous_nodes: Vec<RendezvousNode>) -> Self {
             Self {
-                inner: libp2p::rendezvous::client::Behaviour::new(identity),
+                inner: libp2p::rendezvous::client::Behaviour::new(identity.clone()),
                 rendezvous_nodes,
                 to_dial: VecDeque::new(),
+                local_peer_id: identity.public().into(),
             }
         }
 
@@ -367,6 +369,10 @@ pub mod rendezvous {
             params: &mut impl PollParameters,
         ) -> Poll<NetworkBehaviourAction<Self::OutEvent, Self::ProtocolsHandler>> {
             if let Some(peer_id) = self.to_dial.pop_front() {
+                if peer_id == self.local_peer_id {
+                    tracing::debug!("Skipping self-dial in rendezvous behaviour");
+                    return Poll::Pending;
+                }
                 return Poll::Ready(NetworkBehaviourAction::Dial {
                     opts: DialOpts::peer_id(peer_id)
                         .condition(PeerCondition::Disconnected)

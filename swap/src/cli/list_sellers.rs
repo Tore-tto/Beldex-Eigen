@@ -162,6 +162,10 @@ impl EventLoop {
                                     None,
                                     self.rendezvous_peer_id,
                                 );
+
+                                // Treat the rendezvous node itself as a potential seller
+                                self.asb_quote_status.insert(peer_id, QuoteStatus::Pending);
+                                self.swarm.behaviour_mut().quote.send_request(&peer_id, ());
                             } else {
                                 let address = endpoint.get_remote_address();
                                 tracing::debug!(%peer_id, %address, "Connection established to peer");
