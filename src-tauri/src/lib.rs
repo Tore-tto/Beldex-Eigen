@@ -4,7 +4,7 @@ use swap::cli::{
     api::{
         request::{
             BalanceArgs, BuyBeldexArgs, GetHistoryArgs, GetSwapInfosAllArgs, BeldexRecoveryArgs,
-            ResumeSwapArgs, SuspendCurrentSwapArgs, WithdrawBtcArgs,
+            ResumeSwapArgs, SuspendCurrentSwapArgs, WithdrawBtcArgs, GetLogsArgs, ListSellersArgs,
         },
         tauri_bindings::{TauriContextStatusEvent, TauriEmitter, TauriHandle},
         Context, ContextBuilder,
@@ -170,6 +170,8 @@ pub fn run() {
             beldex_recovery,
             suspend_current_swap,
             is_context_available,
+            get_logs,
+            list_sellers,
         ])
         .setup(setup)
         .build(tauri::generate_context!())
@@ -206,6 +208,8 @@ tauri_command!(buy_bdx, BuyBeldexArgs);
 tauri_command!(resume_swap, ResumeSwapArgs);
 tauri_command!(withdraw_btc, WithdrawBtcArgs);
 tauri_command!(beldex_recovery, BeldexRecoveryArgs);
+tauri_command!(get_logs, GetLogsArgs);
+tauri_command!(list_sellers, ListSellersArgs);
 
 // These commands require no arguments
 tauri_command!(suspend_current_swap, SuspendCurrentSwapArgs, no_args);

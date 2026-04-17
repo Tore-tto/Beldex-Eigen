@@ -1,5 +1,7 @@
+import { Box, Typography } from "@material-ui/core";
 import { TauriSwapProgressEvent } from "models/tauriModel";
 import SwapStatePage from "../SwapStatePage";
+import SwapLogs from "./SwapLogs";
 
 export default function ProcessExitedPage({
   prevState,
@@ -27,15 +29,18 @@ export default function ProcessExitedPage({
     );
   }
 
-  // TODO: Display something useful here
   return (
-    <>
-      If the swap is not a "done" state (or we don't have a db state because the
-      swap did complete the SwapSetup yet) we should tell the user and show logs
-      Not implemented yet
-    </>
+    <Box>
+      <Typography variant="body1" gutterBottom>
+        The swap process has exited, but it did not reach a final state. This
+        could be due to a network error, manual cancellation, or the swap setup
+        not being completed.
+      </Typography>
+      <Typography variant="body2" color="textSecondary" gutterBottom>
+        You can try to resume the swap from the transaction history if possible,
+        or check the logs below for more details.
+      </Typography>
+      <SwapLogs swapId={swapId} />
+    </Box>
   );
-
-  // If the swap is not a "done" state (or we don't have a db state because the swap did complete the SwapSetup yet) we should tell the user and show logs
-  // return <ProcessExitedAndNotDonePage state={state} />;
 }

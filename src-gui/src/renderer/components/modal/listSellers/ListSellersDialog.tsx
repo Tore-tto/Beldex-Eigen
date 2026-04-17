@@ -15,10 +15,11 @@ import { Multiaddr } from "multiaddr";
 import { useSnackbar } from "notistack";
 import { ChangeEvent, useState } from "react";
 import PromiseInvokeButton from "renderer/components/PromiseInvokeButton";
+import { listSellers } from "renderer/rpc";
 
 const PRESET_RENDEZVOUS_POINTS = [
-  "/dns4/discover.unstoppableswap.net/tcp/8888/p2p/12D3KooWA6cnqJpVnreBVnoro8midDL9Lpzmg8oJPoAGi7YYaamE",
-  "/dns4/eratosthen.es/tcp/7798/p2p/12D3KooWAh7EXXa2ZyegzLGdjvj1W4G3EXrTGrf6trraoT1MEobs",
+  // TODO: Add Beldex specific rendezvous points when available
+  // "/dns4/rendezvous.beldex.io/tcp/8888/p2p/12D3KooWPD4uHN74SHotLN7VCH7Fm8zZgaNVymYcpeF1fpD2guc9"
 ];
 
 const useStyles = makeStyles((theme: Theme) => ({
@@ -100,7 +101,7 @@ export default function ListSellersDialog({
           }
           value={rendezvousAddress}
           onChange={handleMultiAddrChange}
-          placeholder="/dns4/discover.unstoppableswap.net/tcp/8888/p2p/12D3KooWA6cnqJpVnreBVnoro8midDL9Lpzmg8oJPoAGi7YYaamE"
+          placeholder="/ip4/127.0.0.1/tcp/8888/p2p/12D3KooWPD4uHN74SHotLN7VCH7Fm8zZgaNVymYcpeF1fpD2guc9"
           error={!!getMultiAddressError()}
         />
         <Box className={classes.chipOuter}>
@@ -124,8 +125,10 @@ export default function ListSellersDialog({
           disabled={!(rendezvousAddress && !getMultiAddressError())}
           color="primary"
           onSuccess={handleSuccess}
-          onInvoke={() => {
-            throw new Error("Not implemented");
+          displayErrorSnackbar
+          onInvoke={async () => {
+            const sellers = await listSellers(rendezvousAddress);
+            return sellers.length;
           }}
         >
           Connect

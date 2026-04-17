@@ -405,8 +405,12 @@ pub async fn get_swap_infos_all(context: Arc<Context>) -> Result<Vec<GetSwapInfo
     let mut swap_infos = Vec::new();
 
     for (swap_id, _) in swap_ids {
-        let swap_info = get_swap_info(GetSwapInfoArgs { swap_id }, context.clone()).await?;
-        swap_infos.push(swap_info);
+        match get_swap_info(GetSwapInfoArgs { swap_id }, context.clone()).await {
+            Ok(swap_info) => swap_infos.push(swap_info),
+            Err(error) => {
+                tracing::warn!(%swap_id, "Failed to get swap info: {:#}", error);
+            }
+        }
     }
 
     Ok(swap_infos)

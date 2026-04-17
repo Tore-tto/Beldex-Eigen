@@ -152,7 +152,7 @@ impl Wallet {
                 .inner
                 .lock()
                 .await
-                .sweep_all(self.main_address.to_string())
+                .sweep_all(self.main_address.to_string(), 0)
                 .await
             {
                 Ok(sweep_all) => {
@@ -255,7 +255,7 @@ impl Wallet {
             .inner
             .lock()
             .await
-            .sweep_all(address.to_string())
+            .sweep_all(address.to_string(), 0)
             .await?;
 
         let tx_hashes = sweep_all.tx_hash_list.into_iter().map(TxHash).collect();
@@ -613,7 +613,7 @@ DEBUG swap::beldex::wallet: Opening wallet `foo-wallet` because no wallet is loa
             todo!()
         }
 
-        async fn transfer(&self, _: u32, _: Vec<wallet::Destination>, _: bool) -> Result<wallet::Transfer, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
+        async fn transfer(&self, _: u32, _: Vec<wallet::Destination>, _: bool, _: u32) -> Result<wallet::Transfer, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
             todo!()
         }
 
@@ -648,7 +648,7 @@ DEBUG swap::beldex::wallet: Opening wallet `foo-wallet` because no wallet is loa
             todo!()
         }
 
-        async fn sweep_all(&self, _: String) -> Result<wallet::SweepAll, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
+        async fn sweep_all(&self, _: String, _: u32) -> Result<wallet::SweepAll, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
             todo!()
         }
 

@@ -31,6 +31,7 @@ pub trait BeldexWalletRpc<E: std::error::Error + Send + Sync + 'static> {
         account_index: u32,
         destinations: Vec<Destination>,
         get_tx_key: bool,
+        priority: u32,
     ) -> Result<Transfer, jsonrpc_client::Error<E>>;
     async fn get_height(&self) -> Result<BlockHeight, jsonrpc_client::Error<E>>;
     async fn check_tx_key(
@@ -51,7 +52,11 @@ pub trait BeldexWalletRpc<E: std::error::Error + Send + Sync + 'static> {
         autosave_current: bool,
     ) -> Result<GenerateFromKeys, jsonrpc_client::Error<E>>;
     async fn refresh(&self) -> Result<Refreshed, jsonrpc_client::Error<E>>;
-    async fn sweep_all(&self, address: String) -> Result<SweepAll, jsonrpc_client::Error<E>>;
+    async fn sweep_all(
+        &self,
+        address: String,
+        priority: u32,
+    ) -> Result<SweepAll, jsonrpc_client::Error<E>>;
     async fn get_version(&self) -> Result<Version, jsonrpc_client::Error<E>>;
 }
 
@@ -93,7 +98,7 @@ impl Client {
             address: address.to_owned(),
         }];
 
-        Ok(self.transfer(account_index, dest, true).await?)
+        Ok(self.transfer(account_index, dest, true, 0).await?)
     }
 
     async fn call<P: Serialize, R: DeserializeOwned>(
@@ -101,29 +106,29 @@ impl Client {
         method: &str,
         params: P,
     ) -> Result<R, jsonrpc_client::Error<reqwest::Error>> {
-        let response = self
+        let text = self
             .send_request(method, params)
             .await
             .map_err(jsonrpc_client::Error::Client)?;
 
-        if let Some(error) = response.error {
-            return Err(jsonrpc_client::Error::JsonRpc(
-                jsonrpc_client::JsonRpcError {
-                    code: error.code,
-                    message: error.message,
-                    data: error.data,
-                },
-            ));
-        }
+        let response: RpcResponse<R> = serde_json::from_str(&text).map_err(|e| {
+            jsonrpc_client::Error::JsonRpc(jsonrpc_client::JsonRpcError {
+                code: -32700,
+                message: format!("Parse error: {}", e),
+                data: None,
+            })
+        })?;
 
-        Ok(response.result.expect("result or error must be present"))
+        response.into_result().map_err(|error| {
+            jsonrpc_client::Error::JsonRpc(jsonrpc_client::JsonRpcError {
+                code: error.code,
+                message: error.message,
+                data: error.data,
+            })
+        })
     }
 
-    async fn send_request<P: Serialize, R: DeserializeOwned>(
-        &self,
-        method: &str,
-        params: P,
-    ) -> Result<RpcResponse<R>, reqwest::Error> {
+    async fn send_request<P: Serialize>(&self, method: &str, params: P) -> Result<String, reqwest::Error> {
         let request = serde_json::json!({
             "jsonrpc": "2.0",
             "id": "0",
@@ -136,7 +141,7 @@ impl Client {
             .json(&request)
             .send()
             .await?
-            .json()
+            .text()
             .await
     }
 }
@@ -149,6 +154,21 @@ struct RpcResponse<R> {
     pub error: Option<RpcError>,
     #[allow(dead_code)]
     pub id: serde_json::Value,
+}
+
+impl<R> RpcResponse<R> {
+    pub fn into_result(self) -> Result<R, RpcError> {
+        match (self.result, self.error) {
+            (Some(result), None) => Ok(result),
+            (None, Some(error)) => Err(error),
+            (Some(_), Some(error)) => Err(error),
+            (None, None) => Err(RpcError {
+                code: -32603,
+                message: "Internal JSON-RPC error: response has neither result nor error".to_string(),
+                data: None,
+            }),
+        }
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -227,8 +247,18 @@ impl BeldexWalletRpc<reqwest::Error> for Client {
         account_index: u32,
         destinations: Vec<Destination>,
         get_tx_key: bool,
+        priority: u32,
     ) -> Result<Transfer, jsonrpc_client::Error<reqwest::Error>> {
-        self.call("transfer", serde_json::json!({ "account_index": account_index, "destinations": destinations, "get_tx_key": get_tx_key })).await
+        self.call(
+            "transfer",
+            serde_json::json!({
+                "account_index": account_index,
+                "destinations": destinations,
+                "get_tx_key": get_tx_key,
+                "priority": priority
+            }),
+        )
+        .await
     }
 
     async fn get_height(&self) -> Result<BlockHeight, jsonrpc_client::Error<reqwest::Error>> {
@@ -268,9 +298,13 @@ impl BeldexWalletRpc<reqwest::Error> for Client {
     async fn sweep_all(
         &self,
         address: String,
+        priority: u32,
     ) -> Result<SweepAll, jsonrpc_client::Error<reqwest::Error>> {
-        self.call("sweep_all", serde_json::json!({ "address": address }))
-            .await
+        self.call(
+            "sweep_all",
+            serde_json::json!({ "address": address, "priority": priority }),
+        )
+        .await
     }
 
     async fn get_version(&self) -> Result<Version, jsonrpc_client::Error<reqwest::Error>> {

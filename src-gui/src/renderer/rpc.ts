@@ -14,6 +14,10 @@ import {
   TauriSwapProgressEventWrapper,
   WithdrawBtcArgs,
   WithdrawBtcResponse,
+  GetLogsArgs,
+  GetLogsResponse,
+  Seller,
+  ListSellersArgs,
 } from "models/tauriModel";
 import {
   contextStatusEventReceived,
@@ -67,12 +71,16 @@ export async function checkBitcoinBalance() {
 }
 
 export async function getAllSwapInfos() {
-  const response =
-    await invokeNoArgs<GetSwapInfoResponse[]>("get_swap_infos_all");
+  try {
+    const response =
+      await invokeNoArgs<GetSwapInfoResponse[]>("get_swap_infos_all");
 
-  response.forEach((swapInfo) => {
-    store.dispatch(rpcSetSwapInfo(swapInfo));
-  });
+    response.forEach((swapInfo) => {
+      store.dispatch(rpcSetSwapInfo(swapInfo));
+    });
+  } catch (e) {
+    console.error("Failed to get all swap infos", e);
+  }
 }
 
 export async function withdrawBtc(address: string): Promise<string> {
@@ -123,4 +131,22 @@ export async function getBeldexRecoveryKeys(
 export async function checkContextAvailability(): Promise<boolean> {
   const available = await invokeNoArgs<boolean>("is_context_available");
   return available;
+}
+
+export async function getLogs(swapId: string): Promise<string[]> {
+  const response = await invoke<GetLogsArgs, GetLogsResponse>("get_logs", {
+    swap_id: swapId,
+    redact: true,
+    logs_dir: null,
+  });
+
+  return response.logs;
+}
+
+export async function listSellers(rendezvousPoint: string): Promise<Seller[]> {
+  const response = await invoke<ListSellersArgs, any>("list_sellers", {
+    rendezvous_point: rendezvousPoint,
+  });
+
+  return response.sellers;
 }
