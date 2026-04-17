@@ -138,6 +138,8 @@ pub struct Network {
     pub rendezvous_point: Vec<Multiaddr>,
     #[serde(default, deserialize_with = "addr_list::deserialize")]
     pub external_addresses: Vec<Multiaddr>,
+    #[serde(default)]
+    pub rendezvous_server: bool,
 }
 
 mod addr_list {
@@ -392,6 +394,7 @@ pub fn query_user_for_initial_config(testnet: bool) -> Result<Config> {
             listen: listen_addresses,
             rendezvous_point: rendezvous_points, // keeping the singular key name for backcompat
             external_addresses: vec![],
+            rendezvous_server: false,
         },
         bitcoin: Bitcoin {
             electrum_rpc_url,
@@ -448,6 +451,7 @@ mod tests {
                 listen: vec![defaults.listen_address_tcp, defaults.listen_address_ws],
                 rendezvous_point: vec![],
                 external_addresses: vec![],
+                rendezvous_server: false,
             },
             beldex: Beldex {
                 wallet_rpc_url: defaults.beldex_wallet_rpc_url,
@@ -493,6 +497,7 @@ mod tests {
                 listen: vec![defaults.listen_address_tcp, defaults.listen_address_ws],
                 rendezvous_point: vec![],
                 external_addresses: vec![],
+                rendezvous_server: false,
             },
             beldex: Beldex {
                 wallet_rpc_url: defaults.beldex_wallet_rpc_url,
@@ -548,6 +553,7 @@ mod tests {
                 listen,
                 rendezvous_point: vec![],
                 external_addresses,
+                rendezvous_server: false,
             },
             beldex: Beldex {
                 wallet_rpc_url: defaults.beldex_wallet_rpc_url,

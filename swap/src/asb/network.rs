@@ -118,6 +118,7 @@ pub mod behaviour {
         LR: LatestRate + Send + 'static,
     {
         pub rendezvous: Toggle<rendezvous::Behaviour>,
+        pub rendezvous_server: Toggle<libp2p::rendezvous::server::Behaviour>,
         pub quote: quote::Behaviour,
         pub swap_setup: alice::Behaviour<LR>,
         pub transfer_proof: transfer_proof::Behaviour,
@@ -143,6 +144,7 @@ pub mod behaviour {
             env_config: env::Config,
             identify_params: (identity::Keypair, BeldexBtcNamespace),
             rendezvous_nodes: Vec<RendezvousNode>,
+            rendezvous_server_enabled: bool,
         ) -> Self {
             let (identity, namespace) = identify_params;
             let agent_version = format!("asb/{} ({})", env!("CARGO_PKG_VERSION"), namespace);
@@ -156,8 +158,17 @@ pub mod behaviour {
                 Some(rendezvous::Behaviour::new(identity, rendezvous_nodes))
             };
 
+            let rendezvous_server = if rendezvous_server_enabled {
+                Some(libp2p::rendezvous::server::Behaviour::new(
+                    libp2p::rendezvous::server::Config::default(),
+                ))
+            } else {
+                None
+            };
+
             Self {
                 rendezvous: Toggle::from(behaviour),
+                rendezvous_server: Toggle::from(rendezvous_server),
                 quote: quote::asb(),
                 swap_setup: alice::Behaviour::new(
                     min_buy,
@@ -190,6 +201,12 @@ pub mod behaviour {
     impl From<libp2p::rendezvous::client::Event> for OutEvent {
         fn from(event: libp2p::rendezvous::client::Event) -> Self {
             OutEvent::Rendezvous(event)
+        }
+    }
+
+    impl From<libp2p::rendezvous::server::Event> for OutEvent {
+        fn from(_: libp2p::rendezvous::server::Event) -> Self {
+            OutEvent::Other
         }
     }
 }

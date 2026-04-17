@@ -1,8 +1,6 @@
 use std::path::Path;
-use std::str::FromStr;
-
 use anyhow::Result;
-use tracing_subscriber::filter::{Directive, LevelFilter};
+use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::time::UtcTime;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -21,9 +19,14 @@ pub enum Format {
 /// Said file will contain JSON-formatted logs of all levels,
 /// disregarding the arguments to this function.
 pub fn init(level_filter: LevelFilter, format: Format, dir: impl AsRef<Path>) -> Result<()> {
-    let env_filter = EnvFilter::from_default_env()
-        .add_directive(Directive::from_str(&format!("asb={}", &level_filter))?)
-        .add_directive(Directive::from_str(&format!("swap={}", &level_filter))?);
+    let asb_swap_filter = EnvFilter::default()
+        .add_directive(LevelFilter::WARN.into())
+        .add_directive(format!("asb={}", level_filter).parse()?)
+        .add_directive(format!("swap={}", level_filter).parse()?)
+        .add_directive(format!("beldex_rpc={}", level_filter).parse()?);
+
+    let env_filter = EnvFilter::try_from_default_env()
+        .unwrap_or(asb_swap_filter);
 
     // file logger will always write in JSON format and with timestamps
     let file_appender = tracing_appender::rolling::never(&dir, "swap-all.log");
@@ -34,7 +37,7 @@ pub fn init(level_filter: LevelFilter, format: Format, dir: impl AsRef<Path>) ->
         .with_timer(UtcTime::rfc_3339())
         .with_target(false)
         .json()
-        .with_filter(env_filter);
+        .with_filter(env_filter.clone());
 
     // terminal logger
     let is_terminal = atty::is(atty::Stream::Stderr);
@@ -48,12 +51,12 @@ pub fn init(level_filter: LevelFilter, format: Format, dir: impl AsRef<Path>) ->
     if let Format::Json = format {
         tracing_subscriber::registry()
             .with(file_layer)
-            .with(terminal_layer.json().with_filter(level_filter))
+            .with(terminal_layer.json().with_filter(env_filter))
             .init();
     } else {
         tracing_subscriber::registry()
             .with(file_layer)
-            .with(terminal_layer.with_filter(level_filter))
+            .with(terminal_layer.with_filter(env_filter))
             .init();
     }
 

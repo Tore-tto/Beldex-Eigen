@@ -18,8 +18,8 @@ import PromiseInvokeButton from "renderer/components/PromiseInvokeButton";
 import { listSellers } from "renderer/rpc";
 
 const PRESET_RENDEZVOUS_POINTS = [
-  // TODO: Add Beldex specific rendezvous points when available
-  // "/dns4/rendezvous.beldex.io/tcp/8888/p2p/12D3KooWPD4uHN74SHotLN7VCH7Fm8zZgaNVymYcpeF1fpD2guc9"
+  "/ip4/194.5.152.31/tcp/9939/p2p/12D3KooWNQGN39V6je7sgQBEjuKEMMNEeA5fPUbX4YMm2nrGocpF",
+  "/dns4/rendezvous.beldex.io/tcp/8888/p2p/12D3KooWPD4uHN74SHotLN7VCH7Fm8zZgaNVymYcpeF1fpD2guc9",
 ];
 
 const useStyles = makeStyles((theme: Theme) => ({

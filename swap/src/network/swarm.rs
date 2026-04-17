@@ -18,6 +18,7 @@ pub fn asb<LR>(
     env_config: env::Config,
     namespace: BeldexBtcNamespace,
     rendezvous_addrs: &[Multiaddr],
+    rendezvous_server_enabled: bool,
 ) -> Result<Swarm<asb::Behaviour<LR>>>
 where
     LR: LatestRate + Send + 'static + Debug + Clone,
@@ -43,6 +44,7 @@ where
         env_config,
         (identity.clone(), namespace),
         rendezvous_nodes,
+        rendezvous_server_enabled,
     );
 
     let transport = asb::transport::new(&identity)?;

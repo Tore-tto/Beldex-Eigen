@@ -195,6 +195,7 @@ pub async fn main() -> Result<()> {
                 env_config,
                 namespace,
                 &rendezvous_addrs,
+                config.network.rendezvous_server,
             )?;
 
             for listen in config.network.listen.clone() {
