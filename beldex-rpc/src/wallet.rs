@@ -51,10 +51,7 @@ pub trait BeldexWalletRpc<E: std::error::Error + Send + Sync + 'static> {
         autosave_current: bool,
     ) -> Result<GenerateFromKeys, jsonrpc_client::Error<E>>;
     async fn refresh(&self) -> Result<Refreshed, jsonrpc_client::Error<E>>;
-    async fn sweep_all(
-        &self,
-        address: String,
-    ) -> Result<SweepAll, jsonrpc_client::Error<E>>;
+    async fn sweep_all(&self, address: String) -> Result<SweepAll, jsonrpc_client::Error<E>>;
     async fn get_version(&self) -> Result<Version, jsonrpc_client::Error<E>>;
 }
 
@@ -126,7 +123,11 @@ impl Client {
         })
     }
 
-    async fn send_request<P: Serialize>(&self, method: &str, params: P) -> Result<String, reqwest::Error> {
+    async fn send_request<P: Serialize>(
+        &self,
+        method: &str,
+        params: P,
+    ) -> Result<String, reqwest::Error> {
         let request = serde_json::json!({
             "jsonrpc": "2.0",
             "id": "1",
@@ -162,7 +163,8 @@ impl<R> RpcResponse<R> {
             (Some(_), Some(error)) => Err(error),
             (None, None) => Err(RpcError {
                 code: -32603,
-                message: "Internal JSON-RPC error: response has neither result nor error".to_string(),
+                message: "Internal JSON-RPC error: response has neither result nor error"
+                    .to_string(),
                 data: None,
             }),
         }
@@ -295,11 +297,8 @@ impl BeldexWalletRpc<reqwest::Error> for Client {
         &self,
         address: String,
     ) -> Result<SweepAll, jsonrpc_client::Error<reqwest::Error>> {
-        self.call(
-            "sweep_all",
-            serde_json::json!({ "address": address }),
-        )
-        .await
+        self.call("sweep_all", serde_json::json!({ "address": address }))
+            .await
     }
 
     async fn get_version(&self) -> Result<Version, jsonrpc_client::Error<reqwest::Error>> {
@@ -399,12 +398,14 @@ impl fmt::Display for BlockHeight {
 pub struct CheckTxKey {
     pub confirmations: u64,
     pub received: u64,
+    pub in_pool: bool,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
 struct CheckTxKeyResponse {
     pub confirmations: u64,
     pub received: u64,
+    pub in_pool: bool,
 }
 
 impl From<CheckTxKeyResponse> for CheckTxKey {
@@ -421,6 +422,7 @@ impl From<CheckTxKeyResponse> for CheckTxKey {
         CheckTxKey {
             confirmations,
             received: response.received,
+            in_pool: response.in_pool,
         }
     }
 }
