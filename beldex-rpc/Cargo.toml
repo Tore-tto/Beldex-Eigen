@@ -11,7 +11,7 @@ hex = "0.4"
 jsonrpc_client = { version = "0.7", features = [ "reqwest" ] }
 beldex = { package = "monero", version = "0.12" }
 beldex-epee-bin-serde = { package = "monero-epee-bin-serde", version = "1" }
-rand = "0.7"
+rand = "0.9"
 reqwest = { version = "0.11", default-features = false, features = [ "json" ] }
 rust_decimal = { version = "1", features = [ "serde-float" ] }
 serde = { version = "1.0", features = [ "derive" ] }

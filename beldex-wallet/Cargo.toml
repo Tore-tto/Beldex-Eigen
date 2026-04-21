@@ -8,12 +8,12 @@ edition = "2021"
 anyhow = "1"
 beldex = { package = "monero", version = "0.12" }
 beldex-rpc = { path = "../beldex-rpc" }
-rand = "0.7"
+rand = "0.9"
 
 [dev-dependencies]
 curve25519-dalek-ng = "4"
 beldex-harness = { path = "../beldex-harness" }
-rand = "0.7"
+rand = "0.9"
 testcontainers = "0.15"
 tokio = { version = "1", features = [ "rt-multi-thread", "time", "macros", "sync", "process", "fs" ] }
 tracing-subscriber = { version = "0.3", default-features = false, features = [ "fmt", "ansi", "env-filter", "chrono", "tracing-log" ] }
