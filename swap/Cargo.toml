@@ -125,7 +125,7 @@ void = "1"
 tokio-tar = "0.3"
 
 [target.'cfg(windows)'.dependencies]
-zip = "0.5"
+zip = "8.5"
 
 [dev-dependencies]
 bitcoin-harness = { git = "https://github.com/delta1/bitcoin-harness-rs.git", rev = "80cc8d05db2610d8531011be505b7bee2b5cdf9f" }
