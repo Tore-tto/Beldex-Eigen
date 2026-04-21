@@ -347,44 +347,58 @@ async fn wait_for_confirmations<C: beldex_rpc::wallet::BeldexWalletRpc<reqwest::
         check_interval.tick().await; // tick() at the beginning of the loop so every `continue` tick()s as well
 
         let txid = transfer_proof.tx_hash().to_string();
+        let key = transfer_proof.tx_key.to_string();
         let client = client.lock().await;
 
-        let tx = match client
-            .check_tx_key(
-                txid.clone(),
-                transfer_proof.tx_key.to_string(),
-                to_address.to_string(),
-            )
-            .await
-        {
-            Ok(proof) => proof,
-            Err(jsonrpc::Error::JsonRpc(jsonrpc::JsonRpcError {
-                code: -1,
-                message,
-                data,
-            })) => {
-                tracing::debug!(message, ?data);
-                tracing::warn!(%txid, message, "`beldex-wallet-rpc` failed to fetch transaction, may need to be restarted");
-                continue;
+        if let Err(error) = client.refresh().await {
+            tracing::debug!(%txid, %error, "Failed to refresh Beldex wallet before check_tx_key");
+        }
+
+        // Workaround for beldex-wallet-rpc segfault:
+        // `check_tx_key` crashes the beldex node if called on an outgoing 0-conf transaction.
+        // We use `get_transfer_by_txid` instead for transactions in our own wallet (Alice's side).
+        let tx = if let Ok(tx) = client.get_transfer_by_txid(txid.clone()).await {
+            beldex_rpc::wallet::CheckTxKey {
+                confirmations: tx.transfer.confirmations,
+                received: expected.as_atomic(), // Trust the expected amount since we sent it
+                in_pool: tx.transfer.confirmations == 0,
             }
-            // TODO: Implement this using a generic proxy for each function call once https://github.com/thomaseizinger/rust-jsonrpc-client/issues/47 is fixed.
-            Err(jsonrpc::Error::JsonRpc(jsonrpc::JsonRpcError { code: -13, .. })) => {
-                tracing::debug!(
-                    "Opening wallet `{}` because no wallet is loaded",
-                    wallet_name
-                );
-                let _ = client.open_wallet(wallet_name.clone()).await;
-                continue;
-            }
-            Err(other) => {
-                tracing::debug!(
-                    %txid,
-                    "Failed to retrieve tx from blockchain: {:#}", other
-                );
-                continue; // treating every error as transient and retrying
-                          // is obviously wrong but the jsonrpc client is
-                          // too primitive to differentiate between all the
-                          // cases
+        } else {
+            match client
+                .check_tx_key(txid.clone(), key, to_address.to_string())
+                .await
+            {
+                Ok(proof) => proof,
+                Err(jsonrpc::Error::JsonRpc(jsonrpc::JsonRpcError {
+                    code: -1,
+                    message,
+                    data,
+                })) => {
+                    tracing::debug!(message, ?data);
+                    tracing::warn!(
+                        %txid,
+                        message,
+                        "`beldex-wallet-rpc` failed to fetch transaction, may need to be restarted"
+                    );
+                    continue;
+                }
+                // TODO: Implement this using a generic proxy for each function call once https://github.com/thomaseizinger/rust-jsonrpc-client/issues/47 is fixed.
+                Err(jsonrpc::Error::JsonRpc(jsonrpc::JsonRpcError { code: -13, .. })) => {
+                    tracing::debug!(
+                        "Opening wallet `{}` because no wallet is loaded",
+                        wallet_name
+                    );
+                    let _ = client.open_wallet(wallet_name.clone()).await;
+                    continue;
+                }
+                Err(other) => {
+                    tracing::debug!(
+                        %txid,
+                        "Failed to retrieve tx from blockchain: {:#}",
+                        other
+                    );
+                    continue;
+                }
             }
         };
 
@@ -424,6 +438,7 @@ mod tests {
         let client = Mutex::new(DummyClient::new(vec![Ok(CheckTxKey {
             confirmations: 10,
             received: 100,
+            in_pool: false,
         })]));
 
         let result = wait_for_confirmations(
@@ -458,22 +473,27 @@ mod tests {
             Ok(CheckTxKey {
                 confirmations: 1,
                 received: 100,
+                in_pool: true,
             }),
             Ok(CheckTxKey {
                 confirmations: 1,
                 received: 100,
+                in_pool: true,
             }),
             Ok(CheckTxKey {
                 confirmations: 1,
                 received: 100,
+                in_pool: true,
             }),
             Ok(CheckTxKey {
                 confirmations: 3,
                 received: 100,
+                in_pool: false,
             }),
             Ok(CheckTxKey {
                 confirmations: 5,
                 received: 100,
+                in_pool: false,
             }),
         ]));
 
@@ -508,19 +528,23 @@ mod tests {
             Ok(CheckTxKey {
                 confirmations: 1,
                 received: 100,
+                in_pool: true,
             }),
             Ok(CheckTxKey {
                 confirmations: 1,
                 received: 100,
+                in_pool: true,
             }),
             Err((-13, "No wallet file".to_owned())),
             Ok(CheckTxKey {
                 confirmations: 3,
                 received: 100,
+                in_pool: false,
             }),
             Ok(CheckTxKey {
                 confirmations: 5,
                 received: 100,
+                in_pool: false,
             }),
         ]));
 
@@ -654,6 +678,18 @@ DEBUG swap::beldex::wallet: Opening wallet `foo-wallet` because no wallet is loa
 
         async fn get_version(&self) -> Result<wallet::Version, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
             todo!()
+        }
+
+        async fn get_transfer_by_txid(
+            &self,
+            _: String,
+        ) -> Result<wallet::GetTransferByTxid, beldex_rpc::jsonrpc::Error<reqwest::Error>> {
+            // By default return error so it falls back to check_tx_key in tests
+            Err(beldex_rpc::jsonrpc::Error::JsonRpc(beldex_rpc::jsonrpc::JsonRpcError {
+                code: -1,
+                message: "Not found".to_owned(),
+                data: None,
+            }))
         }
     }
 }

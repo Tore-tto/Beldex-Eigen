@@ -56,6 +56,7 @@ pub trait BeldexWalletRpc<E: std::error::Error + Send + Sync + 'static> {
         address: String,
     ) -> Result<SweepAll, jsonrpc_client::Error<E>>;
     async fn get_version(&self) -> Result<Version, jsonrpc_client::Error<E>>;
+    async fn get_transfer_by_txid(&self, txid: String) -> Result<GetTransferByTxid, jsonrpc_client::Error<E>>;
 }
 
 #[derive(Debug, Clone)]
@@ -305,6 +306,17 @@ impl BeldexWalletRpc<reqwest::Error> for Client {
     async fn get_version(&self) -> Result<Version, jsonrpc_client::Error<reqwest::Error>> {
         self.call("get_version", serde_json::json!({})).await
     }
+
+    async fn get_transfer_by_txid(
+        &self,
+        txid: String,
+    ) -> Result<GetTransferByTxid, jsonrpc_client::Error<reqwest::Error>> {
+        self.call(
+            "get_transfer_by_txid",
+            serde_json::json!({ "txid": txid }),
+        )
+        .await
+    }
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -399,12 +411,14 @@ impl fmt::Display for BlockHeight {
 pub struct CheckTxKey {
     pub confirmations: u64,
     pub received: u64,
+    pub in_pool: bool,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
 struct CheckTxKeyResponse {
     pub confirmations: u64,
     pub received: u64,
+    pub in_pool: bool,
 }
 
 impl From<CheckTxKeyResponse> for CheckTxKey {
@@ -421,6 +435,7 @@ impl From<CheckTxKeyResponse> for CheckTxKey {
         CheckTxKey {
             confirmations,
             received: response.received,
+            in_pool: response.in_pool,
         }
     }
 }
@@ -445,6 +460,25 @@ pub struct SweepAll {
 #[derive(Debug, Copy, Clone, Deserialize)]
 pub struct Version {
     pub version: u32,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct GetTransferByTxid {
+    pub transfer: TransferEntry,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct TransferEntry {
+    #[serde(default)]
+    pub amount: u64,
+    #[serde(default)]
+    pub confirmations: u64,
+    #[serde(default)]
+    pub fee: u64,
+    #[serde(default)]
+    pub txid: String,
+    #[serde(rename = "type", default)]
+    pub type_: String,
 }
 
 pub type WalletCreated = Empty;
