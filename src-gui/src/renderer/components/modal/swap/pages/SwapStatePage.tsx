@@ -18,8 +18,10 @@ import WaitingForBitcoinDepositPage from "./init/WaitingForBitcoinDepositPage";
 
 export default function SwapStatePage({
   state,
+  preferredAmount,
 }: {
   state: SwapSlice["state"];
+  preferredAmount?: number;
 }) {
   // TODO: Reimplement this using tauri events
   /*
@@ -33,7 +35,7 @@ export default function SwapStatePage({
   */
 
   if (state === null) {
-    return <InitPage />;
+    return <InitPage preferredAmount={preferredAmount} />;
   }
   switch (state.curr.type) {
     case "Initiated":

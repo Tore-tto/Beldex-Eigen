@@ -100,11 +100,13 @@ export async function buyBeldex(
   seller: Provider,
   bitcoin_change_address: string,
   beldex_receive_address: string,
+  amount: number | null,
 ) {
   await invoke<BuyBeldexArgs, BuyBeldexResponse>("buy_bdx", {
     seller: providerToConcatenatedMultiAddr(seller),
     bitcoin_change_address,
     beldex_receive_address,
+    amount: amount ?? undefined,
   });
 }
 
@@ -146,6 +148,14 @@ export async function getLogs(swapId: string): Promise<string[]> {
 
 export async function startDaemon() {
   await invokeNoArgs("start_daemon");
+}
+
+export async function stopDaemon() {
+  return await invokeNoArgs<void>("stop_daemon");
+}
+
+export async function openDataDir() {
+  return await invokeNoArgs<void>("open_data_dir");
 }
 
 export async function isDaemonRunning(): Promise<boolean> {

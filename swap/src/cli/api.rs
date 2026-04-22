@@ -26,6 +26,7 @@ use tracing::level_filters::LevelFilter;
 use tracing::Level;
 use url::Url;
 use uuid::Uuid;
+use jsonrpsee::server::ServerHandle;
 
 static START: Once = Once::new();
 
@@ -186,6 +187,7 @@ pub struct Context {
     bitcoin_wallet: Option<Arc<bitcoin::Wallet>>,
     beldex_wallet: Option<Arc<beldex::Wallet>>,
     beldex_rpc_process: Option<Arc<SyncMutex<beldex::WalletRpcProcess>>>,
+    pub rpc_server_handle: Arc<TokioMutex<Option<ServerHandle>>>,
 }
 
 /// A conveniant builder struct for [`Context`].
@@ -367,6 +369,7 @@ impl ContextBuilder {
             swap_lock: Arc::new(SwapLock::new()),
             tasks: Arc::new(PendingTaskList::default()),
             tauri_handle: self.tauri_handle,
+            rpc_server_handle: Arc::new(TokioMutex::new(None)),
         };
 
         Ok(context)
@@ -400,6 +403,7 @@ impl Context {
             swap_lock: Arc::new(SwapLock::new()),
             tasks: Arc::new(PendingTaskList::default()),
             tauri_handle: None,
+            rpc_server_handle: Arc::new(TokioMutex::new(None)),
         }
     }
 

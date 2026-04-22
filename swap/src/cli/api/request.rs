@@ -48,6 +48,9 @@ pub struct BuyBeldexArgs {
     pub bitcoin_change_address: bitcoin::Address,
     #[typeshare(serialized_as = "string")]
     pub beldex_receive_address: beldex::Address,
+    #[typeshare(serialized_as = "number")]
+    #[serde(default, with = "::bitcoin::util::amount::serde::as_sat::opt")]
+    pub amount: Option<bitcoin::Amount>,
 }
 
 #[typeshare]
@@ -177,6 +180,30 @@ impl Request for StartDaemonArgs {
 
     async fn request(self, ctx: Arc<Context>) -> Result<Self::Response> {
         start_daemon(self, (*ctx).clone()).await
+    }
+}
+
+// StopDaemon
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Default, Clone)]
+pub struct StopDaemonArgs;
+
+impl Request for StopDaemonArgs {
+    type Response = serde_json::Value;
+
+    async fn request(self, ctx: Arc<Context>) -> Result<Self::Response> {
+        stop_daemon(ctx).await
+    }
+}
+
+// OpenDataDir
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Default, Clone)]
+pub struct OpenDataDirArgs;
+
+impl Request for OpenDataDirArgs {
+    type Response = serde_json::Value;
+
+    async fn request(self, ctx: Arc<Context>) -> Result<Self::Response> {
+        open_data_dir(ctx).await
     }
 }
 
@@ -540,6 +567,7 @@ pub async fn buy_beldex(
         seller,
         bitcoin_change_address,
         beldex_receive_address,
+        amount: preferred_amount,
     } = buy_beldex;
 
     let swap_id = Uuid::new_v4();
@@ -670,7 +698,8 @@ pub async fn buy_beldex(
                     || bitcoin_wallet.sync(),
                     estimate_fee,
                     context.tauri_handle.clone(),
-                    Some(swap_id)
+                    Some(swap_id),
+                    preferred_amount,
                 );
 
                 let (amount, fees) = match determine_amount.await {
@@ -961,19 +990,61 @@ pub async fn start_daemon(
     let server_address = server_address.unwrap_or("127.0.0.1:1234".parse()?);
 
     tracing::info!(%server_address, "Running RPC server...");
-    let (addr, server_handle) = rpc::run_server(server_address, context).await?;
+    let (addr, server_handle) = rpc::run_server(server_address, context.clone()).await?;
 
     tracing::info!(%addr, "Successfully started RPC server");
+
+    // Store the handle in context for graceful shutdown
+    *context.rpc_server_handle.lock().await = Some(server_handle.clone());
 
     // We spawn a task to wait for the server to stop, but we return the address immediately
     tokio::spawn(async move {
         server_handle.stopped().await;
         tracing::info!("Stopped RPC server");
+        let _ = context.cleanup();
     });
 
     Ok(json!({
         "server_address": addr.to_string(),
     }))
+}
+
+#[tracing::instrument(fields(method = "stop_daemon"), skip(context))]
+pub async fn stop_daemon(context: Arc<Context>) -> Result<serde_json::Value> {
+    // 1. Try to stop gracefully via the server handle
+    let mut handle_lock = context.rpc_server_handle.lock().await;
+    if let Some(handle) = handle_lock.take() {
+        tracing::info!("Stopping RPC server via handle...");
+        let _ = handle.stop();
+        // The spawned task in start_daemon will handle context.cleanup()
+    } else {
+        // 2. Fallback to pkill if handle is missing
+        tracing::warn!("Server handle not found, falling back to pkill");
+        use std::process::Command;
+        let _ = Command::new("pkill")
+            .arg("-f")
+            .arg("beldex-wallet-rpc")
+            .output();
+        let _ = context.cleanup();
+    }
+
+    Ok(json!({ "result": "OK" }))
+}
+
+#[tracing::instrument(fields(method = "open_data_dir"), skip(context))]
+pub async fn open_data_dir(context: Arc<Context>) -> Result<serde_json::Value> {
+    use std::process::Command;
+    let path = context.config.data_dir.clone();
+
+    tracing::info!(path = %path.display(), "Opening data directory");
+
+    // On Linux, use xdg-open
+    Command::new("xdg-open")
+        .arg(path)
+        .spawn()
+        .context("Failed to spawn xdg-open")?;
+
+    Ok(json!({ "result": "OK" }))
 }
 
 #[tracing::instrument(fields(method = "get_balance"), skip(context))]
@@ -1134,6 +1205,7 @@ pub async fn determine_btc_to_swap<FB, TB, FMG, TMG, FS, TS, FFE, TFE>(
     estimate_fee: FFE,
     event_emitter: Option<TauriHandle>,
     swap_id: Option<Uuid>,
+    preferred_amount: Option<bitcoin::Amount>,
 ) -> Result<(bitcoin::Amount, bitcoin::Amount)>
 where
     TB: Future<Output = Result<bitcoin::Amount>>,
@@ -1231,7 +1303,14 @@ where
     let balance = balance().await?;
     let fees = balance - max_giveable;
     let max_accepted = bid_quote.max_quantity;
-    let btc_swap_amount = min(max_giveable, max_accepted);
+
+    let btc_swap_amount = match preferred_amount {
+        Some(preferred) => {
+            let limit = min(preferred, max_accepted);
+            min(max_giveable, limit)
+        }
+        None => min(max_giveable, max_accepted),
+    };
 
     Ok((btc_swap_amount, fees))
 }

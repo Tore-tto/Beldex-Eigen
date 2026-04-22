@@ -7,7 +7,7 @@ import { useIsContextAvailable } from "store/hooks";
 import InfoBox from "../../modal/swap/InfoBox";
 import CliLogsBox from "../../other/RenderedCliLog";
 import { useEffect, useState } from "react";
-import { getLogs, startDaemon, isDaemonRunning } from "renderer/rpc";
+import { getLogs, startDaemon, isDaemonRunning, stopDaemon, openDataDir } from "renderer/rpc";
 import { CliLog } from "models/cliModel";
 
 const useStyles = makeStyles((theme) => ({
@@ -62,37 +62,49 @@ export default function RpcControlBox() {
         ) : null
       }
       additionalContent={
-        <Box className={classes.actionsOuter}>
-          <PromiseInvokeButton
-            variant="contained"
-            endIcon={<PlayArrowIcon />}
-            disabled={!isContextAvailable || isDaemonActive}
-            onInvoke={async () => {
-              await startDaemon();
-              setIsDaemonActive(true);
+        <Box>
+          <Box
+            style={{
+              marginBottom: "8px",
+              fontWeight: "bold",
+              color: isDaemonActive ? "#4caf50" : "#f44336",
             }}
           >
-            Start Daemon
-          </PromiseInvokeButton>
-          <PromiseInvokeButton
-            variant="contained"
-            endIcon={<StopIcon />}
-            disabled={!isDaemonActive}
-            onInvoke={() => {
-              throw new Error("Not implemented");
-            }}
-          >
-            Stop Daemon
-          </PromiseInvokeButton>
-          <PromiseInvokeButton
-            endIcon={<FolderOpenIcon />}
-            isIconButton
-            size="small"
-            tooltipTitle="Open the data directory of the Swap Daemon in your file explorer"
-            onInvoke={() => {
-              throw new Error("Not implemented");
-            }}
-          />
+            Status: {isDaemonActive ? "RUNNING" : "STOPPED"}
+          </Box>
+          <Box className={classes.actionsOuter}>
+            <PromiseInvokeButton
+              variant="contained"
+              endIcon={<PlayArrowIcon />}
+              disabled={!isContextAvailable || isDaemonActive}
+              onInvoke={async () => {
+                await startDaemon();
+                setIsDaemonActive(true);
+              }}
+            >
+              Start Daemon
+            </PromiseInvokeButton>
+            <PromiseInvokeButton
+              variant="contained"
+              endIcon={<StopIcon />}
+              disabled={!isDaemonActive}
+              onInvoke={async () => {
+                await stopDaemon();
+                setIsDaemonActive(false);
+              }}
+            >
+              Stop Daemon
+            </PromiseInvokeButton>
+            <PromiseInvokeButton
+              endIcon={<FolderOpenIcon />}
+              isIconButton
+              size="small"
+              tooltipTitle="Open the data directory of the Swap Daemon in your file explorer"
+              onInvoke={async () => {
+                await openDataDir();
+              }}
+            />
+          </Box>
         </Box>
       }
       icon={null}

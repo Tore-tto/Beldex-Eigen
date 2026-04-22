@@ -26,9 +26,11 @@ const useStyles = makeStyles({
 export default function SwapDialog({
   open,
   onClose,
+  preferredAmount,
 }: {
   open: boolean;
   onClose: () => void;
+  preferredAmount?: number;
 }) {
   const classes = useStyles();
   const swap = useAppSelector((state) => state.swap);
@@ -62,7 +64,10 @@ export default function SwapDialog({
           <DebugPage />
         ) : (
           <>
-            <SwapStatePage state={swap.state} />
+            <SwapStatePage
+              state={swap.state}
+              preferredAmount={preferredAmount}
+            />
             <SwapStateStepper />
           </>
         )}

@@ -1,10 +1,12 @@
 use std::result::Result;
 use std::sync::Arc;
+use tracing;
 use swap::cli::{
     api::{
         request::{
             BalanceArgs, BuyBeldexArgs, GetHistoryArgs, GetSwapInfosAllArgs, BeldexRecoveryArgs,
-            ResumeSwapArgs, SuspendCurrentSwapArgs, WithdrawBtcArgs, GetLogsArgs, ListSellersArgs, StartDaemonArgs,
+            ResumeSwapArgs, SuspendCurrentSwapArgs, WithdrawBtcArgs, GetLogsArgs, ListSellersArgs,
+            StartDaemonArgs, StopDaemonArgs, OpenDataDirArgs,
         },
         tauri_bindings::{TauriContextStatusEvent, TauriEmitter, TauriHandle},
         Context, ContextBuilder,
@@ -174,6 +176,8 @@ pub fn run() {
             list_sellers,
             start_daemon,
             is_daemon_running,
+            stop_daemon,
+            open_data_dir,
         ])
         .setup(setup)
         .build(tauri::generate_context!())
@@ -218,6 +222,8 @@ tauri_command!(start_daemon, StartDaemonArgs, no_args);
 tauri_command!(suspend_current_swap, SuspendCurrentSwapArgs, no_args);
 tauri_command!(get_swap_infos_all, GetSwapInfosAllArgs, no_args);
 tauri_command!(get_history, GetHistoryArgs, no_args);
+tauri_command!(stop_daemon, StopDaemonArgs, no_args);
+tauri_command!(open_data_dir, OpenDataDirArgs, no_args);
 
 /// Here we define Tauri commands whose implementation is not delegated to the Request trait
 #[tauri::command]

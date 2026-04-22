@@ -19,7 +19,11 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-export default function InitPage() {
+export default function InitPage({
+  preferredAmount,
+}: {
+  preferredAmount?: number;
+}) {
   const classes = useStyles();
   const [redeemAddress, setRedeemAddress] = useState("");
   const [refundAddress, setRefundAddress] = useState("");
@@ -30,7 +34,12 @@ export default function InitPage() {
   );
 
   async function init() {
-    await buyBeldex(selectedProvider, refundAddress, redeemAddress);
+    await buyBeldex(
+      selectedProvider,
+      refundAddress,
+      redeemAddress,
+      preferredAmount,
+    );
   }
 
   return (

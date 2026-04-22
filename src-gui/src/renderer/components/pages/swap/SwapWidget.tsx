@@ -168,6 +168,7 @@ function HasProviderSwapWidget({
       <SwapDialog
         open={showDialog || forceShowDialog}
         onClose={() => setShowDialog(false)}
+        preferredAmount={Number(btcFieldValue)}
       />
     </Box>
   );

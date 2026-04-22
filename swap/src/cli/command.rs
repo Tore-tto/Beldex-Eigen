@@ -76,6 +76,7 @@ where
             beldex,
             beldex_receive_address,
             tor,
+            amount,
         } => {
             let beldex_receive_address =
                 beldex_address::validate_is_testnet(beldex_receive_address, is_testnet)?;
@@ -98,6 +99,7 @@ where
                 seller,
                 bitcoin_change_address,
                 beldex_receive_address,
+                amount,
             }
             .request(context.clone())
             .await?;
@@ -389,6 +391,13 @@ enum CliCommand {
 
         #[structopt(flatten)]
         tor: Tor,
+
+        #[structopt(
+            long = "amount",
+            help = "The amount of bitcoin you want to swap. If not specified, all available funds will be used",
+            parse(try_from_str = Amount::from_str)
+        )]
+        amount: Option<Amount>,
     },
     /// Show a list of past, ongoing and completed swaps
     History,
