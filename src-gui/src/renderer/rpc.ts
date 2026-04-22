@@ -18,6 +18,7 @@ import {
   GetLogsResponse,
   Seller,
   ListSellersArgs,
+  StartDaemonArgs,
 } from "models/tauriModel";
 import {
   contextStatusEventReceived,
@@ -141,6 +142,14 @@ export async function getLogs(swapId: string): Promise<string[]> {
   });
 
   return response.logs;
+}
+
+export async function startDaemon() {
+  await invokeNoArgs("start_daemon");
+}
+
+export async function isDaemonRunning(): Promise<boolean> {
+  return await invokeNoArgs<boolean>("is_daemon_running");
 }
 
 export async function listSellers(rendezvousPoint: string): Promise<Seller[]> {

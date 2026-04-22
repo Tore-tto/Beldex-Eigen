@@ -4,7 +4,7 @@ use swap::cli::{
     api::{
         request::{
             BalanceArgs, BuyBeldexArgs, GetHistoryArgs, GetSwapInfosAllArgs, BeldexRecoveryArgs,
-            ResumeSwapArgs, SuspendCurrentSwapArgs, WithdrawBtcArgs, GetLogsArgs, ListSellersArgs,
+            ResumeSwapArgs, SuspendCurrentSwapArgs, WithdrawBtcArgs, GetLogsArgs, ListSellersArgs, StartDaemonArgs,
         },
         tauri_bindings::{TauriContextStatusEvent, TauriEmitter, TauriHandle},
         Context, ContextBuilder,
@@ -73,7 +73,7 @@ macro_rules! tauri_command {
             // Throw error if context is not available
             let context = context.read().await.try_get_context()?;
 
-            <$request_name as swap::cli::api::request::Request>::request($request_name {}, context)
+            <$request_name as swap::cli::api::request::Request>::request(Default::default(), context)
                 .await
                 .to_string_result()
         }
@@ -172,6 +172,8 @@ pub fn run() {
             is_context_available,
             get_logs,
             list_sellers,
+            start_daemon,
+            is_daemon_running,
         ])
         .setup(setup)
         .build(tauri::generate_context!())
@@ -212,6 +214,7 @@ tauri_command!(get_logs, GetLogsArgs);
 tauri_command!(list_sellers, ListSellersArgs);
 
 // These commands require no arguments
+tauri_command!(start_daemon, StartDaemonArgs, no_args);
 tauri_command!(suspend_current_swap, SuspendCurrentSwapArgs, no_args);
 tauri_command!(get_swap_infos_all, GetSwapInfosAllArgs, no_args);
 tauri_command!(get_history, GetHistoryArgs, no_args);
@@ -220,4 +223,12 @@ tauri_command!(get_history, GetHistoryArgs, no_args);
 #[tauri::command]
 async fn is_context_available(context: tauri::State<'_, RwLock<State>>) -> Result<bool, String> {
     Ok(context.read().await.try_get_context().is_ok())
+}
+#[tauri::command]
+async fn is_daemon_running() -> Result<bool, String> {
+    use std::net::TcpStream;
+    use std::time::Duration;
+    let addr = "127.0.0.1:1234";
+    // Using a short timeout to not block the UI if it's not running
+    Ok(TcpStream::connect_timeout(&addr.parse().unwrap(), Duration::from_millis(500)).is_ok())
 }

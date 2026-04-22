@@ -61,7 +61,6 @@ pub fn init(level_filter: LevelFilter, format: Format, dir: impl AsRef<Path>) ->
     }
 
     // now we can use the tracing macros to log messages
-    tracing::info!(%level_filter, logs_dir=%dir.as_ref().display(), "Initialized tracing");
 
     Ok(())
 }

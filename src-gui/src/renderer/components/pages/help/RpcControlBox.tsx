@@ -6,6 +6,9 @@ import PromiseInvokeButton from "renderer/components/PromiseInvokeButton";
 import { useIsContextAvailable } from "store/hooks";
 import InfoBox from "../../modal/swap/InfoBox";
 import CliLogsBox from "../../other/RenderedCliLog";
+import { useEffect, useState } from "react";
+import { getLogs, startDaemon, isDaemonRunning } from "renderer/rpc";
+import { CliLog } from "models/cliModel";
 
 const useStyles = makeStyles((theme) => ({
   actionsOuter: {
@@ -16,17 +19,45 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 export default function RpcControlBox() {
-  const isRunning = useIsContextAvailable();
+  const isContextAvailable = useIsContextAvailable();
   const classes = useStyles();
+  const [logs, setLogs] = useState<(CliLog | string)[]>([]);
+  const [isDaemonActive, setIsDaemonActive] = useState(false);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    const fetchStatusAndLogs = async () => {
+      try {
+        const active = await isDaemonRunning();
+        setIsDaemonActive(active);
+
+        if (active) {
+          const newLogs = await getLogs(null);
+          setLogs(newLogs as any);
+        }
+      } catch (e) {
+        // Only log error if context is available to avoid spamming when starting up
+        if (isContextAvailable) {
+          console.error("Failed to fetch daemon status or logs", e);
+        }
+      }
+    };
+
+    fetchStatusAndLogs();
+    interval = setInterval(fetchStatusAndLogs, 2000);
+
+    return () => clearInterval(interval);
+  }, [isContextAvailable]);
 
   return (
     <InfoBox
       title={`Daemon Controller`}
       mainContent={
-        isRunning ? (
+        isDaemonActive ? (
           <CliLogsBox
             label="Swap Daemon Logs (current session only)"
-            logs={[]}
+            logs={logs}
           />
         ) : null
       }
@@ -35,9 +66,10 @@ export default function RpcControlBox() {
           <PromiseInvokeButton
             variant="contained"
             endIcon={<PlayArrowIcon />}
-            disabled={isRunning}
-            onInvoke={() => {
-              throw new Error("Not implemented");
+            disabled={!isContextAvailable || isDaemonActive}
+            onInvoke={async () => {
+              await startDaemon();
+              setIsDaemonActive(true);
             }}
           >
             Start Daemon
@@ -45,7 +77,7 @@ export default function RpcControlBox() {
           <PromiseInvokeButton
             variant="contained"
             endIcon={<StopIcon />}
-            disabled={!isRunning}
+            disabled={!isDaemonActive}
             onInvoke={() => {
               throw new Error("Not implemented");
             }}

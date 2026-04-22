@@ -166,7 +166,7 @@ impl Request for ListSellersArgs {
 
 // StartDaemon
 #[typeshare]
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Default, Clone)]
 pub struct StartDaemonArgs {
     #[typeshare(serialized_as = "string")]
     pub server_address: Option<SocketAddr>,
@@ -253,7 +253,7 @@ impl Request for BalanceArgs {
 
 // GetHistory
 #[typeshare]
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct GetHistoryArgs;
 
 #[typeshare]
@@ -288,7 +288,7 @@ pub struct Seller {
 }
 
 // Suspend current swap
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct SuspendCurrentSwapArgs;
 
 #[typeshare]
@@ -346,6 +346,7 @@ impl Request for GetConfigArgs {
     }
 }
 
+#[derive(Debug, Default, Clone)]
 pub struct GetSwapInfosAllArgs;
 
 impl Request for GetSwapInfosAllArgs {
@@ -955,18 +956,24 @@ pub async fn start_daemon(
     context: Context,
 ) -> Result<serde_json::Value> {
     let StartDaemonArgs { server_address } = start_daemon;
+    tracing::info!("Attempting to start daemon...");
     // Default to 127.0.0.1:1234
     let server_address = server_address.unwrap_or("127.0.0.1:1234".parse()?);
 
+    tracing::info!(%server_address, "Running RPC server...");
     let (addr, server_handle) = rpc::run_server(server_address, context).await?;
 
-    tracing::info!(%addr, "Started RPC server");
+    tracing::info!(%addr, "Successfully started RPC server");
 
-    server_handle.stopped().await;
+    // We spawn a task to wait for the server to stop, but we return the address immediately
+    tokio::spawn(async move {
+        server_handle.stopped().await;
+        tracing::info!("Stopped RPC server");
+    });
 
-    tracing::info!("Stopped RPC server");
-
-    Ok(json!({}))
+    Ok(json!({
+        "server_address": addr.to_string(),
+    }))
 }
 
 #[tracing::instrument(fields(method = "get_balance"), skip(context))]

@@ -18,7 +18,7 @@ impl Image for Beldexd {
     type Args = BeldexdArgs;
 
     fn name(&self) -> String {
-        "bafdb1a40140".into()
+        "70d12a20f74f".into()
     }
 
     fn tag(&self) -> String {
@@ -42,7 +42,7 @@ impl Image for BeldexWalletRpc {
     type Args = BeldexWalletRpcArgs;
 
     fn name(&self) -> String {
-        "bafdb1a40140".into()
+        "70d12a20f74f".into()
     }
 
     fn tag(&self) -> String {
@@ -98,14 +98,10 @@ impl IntoIterator for BeldexdArgs {
     type IntoIter = ::std::vec::IntoIter<String>;
 
     fn into_iter(self) -> <Self as IntoIterator>::IntoIter {
-        let mut args = vec![
-            "beldexd".to_string(),
-            "--log-level=4".to_string(),
-            "--non-interactive".to_string(),
-        ];
+        let mut args = vec!["beldexd".to_string(), "--log-level=4".to_string()];
 
         if self.regtest {
-            args.push("--regtest".to_string())
+            args.push("--testnet".to_string())
         }
 
         if self.offline {

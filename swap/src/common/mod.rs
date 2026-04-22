@@ -52,7 +52,6 @@ macro_rules! regex_find_placeholders {
     ($pattern:expr, $create_placeholder:expr, $replacements:expr, $input:expr) => {{
         // compile the regex pattern
         static REGEX: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
-            tracing::debug!("initializing regex");
             regex::Regex::new($pattern).expect("invalid regex pattern")
         });
 
@@ -80,53 +79,75 @@ pub async fn get_logs(
     swap_id: Option<Uuid>,
     redact_addresses: bool,
 ) -> anyhow::Result<Vec<String>> {
-    tracing::debug!("reading logfiles from {}", logs_dir.display());
-
     // get all files in the directory
-    let mut log_files = read_dir(&logs_dir).await?;
+    let mut log_files_stream = read_dir(&logs_dir).await?;
+    let mut log_files = Vec::new();
+
+    while let Some(entry) = log_files_stream.next_entry().await? {
+        let path = entry.path();
+        if path.is_file() && path.extension().map_or(false, |ext| ext == "log") {
+            let metadata = entry.metadata().await?;
+            let modified = metadata.modified()?;
+            log_files.push((path, modified));
+        }
+    }
+
+    // Sort files by modification time (oldest first)
+    log_files.sort_by(|a, b| a.1.cmp(&b.1));
 
     let mut log_messages = Vec::new();
-    // when we redact we need to store the placeholder
     let mut placeholders = HashMap::new();
 
-    // print all lines from every log file. TODO: sort files by date?
-    while let Some(entry) = log_files.next_entry().await? {
-        // get the file path
-        let file_path = entry.path();
-
-        // filter for .log files
-        let file_name = file_path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or("");
-
-        if !file_name.ends_with(".log") {
-            continue;
-        }
-
-        // use BufReader to stay easy on memory and then read line by line
-        let buf_reader = BufReader::new(File::open(&file_path).await?);
+    for (file_path, _) in log_files {
+        let file = File::open(&file_path).await?;
+        let buf_reader = BufReader::new(file);
         let mut lines = buf_reader.lines();
 
-        // print each line, redacted if the flag is set
         while let Some(line) = lines.next_line().await? {
-            // if we should filter by swap id, check if the line contains it
             if let Some(swap_id) = swap_id {
-                // we only want lines which contain the swap id
                 if !line.contains(&swap_id.to_string()) {
                     continue;
                 }
             }
 
-            // redact if necessary
             let line = if redact_addresses {
                 redact_with(&line, &mut placeholders)
             } else {
                 line
             };
-            // save redacted message
-            log_messages.push(line);
+
+            // Basic humanization of JSON logs
+            let humanized_line = if line.starts_with('{') {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&line) {
+                    let timestamp = v["timestamp"].as_str().unwrap_or("");
+                    let level = v["level"].as_str().unwrap_or("INFO");
+                    let message = v["fields"]["message"].as_str().unwrap_or("");
+                    
+                    let mut extra = String::new();
+                    if let Some(obj) = v["fields"].as_object() {
+                        for (k, val) in obj {
+                            if k != "message" {
+                                extra.push_str(&format!(" {}={}", k, val));
+                            }
+                        }
+                    }
+                    format!("{} [{}] {}{}", timestamp, level, message, extra)
+                } else {
+                    line
+                }
+            } else {
+                line
+            };
+
+            log_messages.push(humanized_line);
         }
+    }
+
+    // Only keep the last 200 lines
+    let max_lines = 200;
+    if log_messages.len() > max_lines {
+        let start = log_messages.len() - max_lines;
+        log_messages = log_messages.drain(start..).collect();
     }
 
     Ok(log_messages)

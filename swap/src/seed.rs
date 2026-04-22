@@ -100,8 +100,6 @@ impl Seed {
         let contents = fs::read_to_string(file)?;
         let pem = pem::parse(contents)?;
 
-        tracing::debug!("Reading in seed from {}", file.display());
-
         Self::from_pem(pem)
     }
 
