@@ -19,7 +19,7 @@ use std::fmt;
 use std::ops::{Add, Mul, Sub};
 use std::str::FromStr;
 
-pub const BDX_OFFSET: u64 = 1_000_000_000_000;
+pub const BDX_OFFSET: u64 = 1_000_000_000;
 
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "Network")]
@@ -188,8 +188,8 @@ impl fmt::Display for Amount {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut decimal = Decimal::from(self.0);
         decimal
-            .set_scale(12)
-            .expect("12 is smaller than max precision of 28");
+            .set_scale(9)
+            .expect("9 is smaller than max precision of 28");
         write!(f, "{} BDX", decimal)
     }
 }

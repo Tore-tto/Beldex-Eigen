@@ -7,7 +7,7 @@ export function btcToSats(btc: number): number {
 }
 
 export function piconerosToBeldex(piconeros: number): number {
-  return piconeros / 1000000000000;
+  return piconeros / 1000000000;
 }
 
 export function isBeldexAddressValid(address: string, testnet: boolean) {
