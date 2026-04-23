@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::watch;
 
-const COINGECKO_BDX_BTC_URL: &str =
+pub const COINGECKO_BDX_BTC_URL: &str =
     "https://api.coingecko.com/api/v3/simple/price?ids=beldex&vs_currencies=btc";
 
 /// Poll CoinGecko for BDX/BTC price updates every `interval`.
