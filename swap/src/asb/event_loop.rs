@@ -7,7 +7,7 @@ use crate::network::swap_setup::alice::WalletSnapshot;
 use crate::network::transfer_proof;
 use crate::protocol::alice::{AliceState, State3, Swap};
 use crate::protocol::{Database, State};
-use crate::{bitcoin, env, kraken, beldex};
+use crate::{bitcoin, env, beldex};
 use anyhow::{Context, Result};
 use futures::future;
 use futures::future::{BoxFuture, FutureExt};
@@ -532,33 +532,7 @@ impl LatestRate for FixedRate {
     }
 }
 
-/// Produces [`Rate`]s based on [`PriceUpdate`]s from kraken and a configured
-/// spread.
-#[derive(Debug, Clone)]
-pub struct KrakenRate {
-    ask_spread: Decimal,
-    price_updates: kraken::PriceUpdates,
-}
 
-impl KrakenRate {
-    pub fn new(ask_spread: Decimal, price_updates: kraken::PriceUpdates) -> Self {
-        Self {
-            ask_spread,
-            price_updates,
-        }
-    }
-}
-
-impl LatestRate for KrakenRate {
-    type Error = kraken::Error;
-
-    fn latest_rate(&mut self) -> Result<Rate, Self::Error> {
-        let update = self.price_updates.latest_update()?;
-        let rate = Rate::new(update.ask, self.ask_spread);
-
-        Ok(rate)
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct CoinGeckoRate {
@@ -588,14 +562,11 @@ impl LatestRate for CoinGeckoRate {
 
 #[derive(Debug, Clone)]
 pub enum DynamicRate {
-    Kraken(KrakenRate),
     CoinGecko(CoinGeckoRate),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum DynamicRateError {
-    #[error("Kraken error: {0}")]
-    Kraken(String),
     #[error("CoinGecko error: {0}")]
     CoinGecko(String),
 }
@@ -605,7 +576,6 @@ impl LatestRate for DynamicRate {
 
     fn latest_rate(&mut self) -> Result<Rate, Self::Error> {
         match self {
-            DynamicRate::Kraken(r) => r.latest_rate().map_err(|e| DynamicRateError::Kraken(e.to_string())),
             DynamicRate::CoinGecko(r) => r.latest_rate().map_err(|e| DynamicRateError::CoinGecko(e.to_string())),
         }
     }

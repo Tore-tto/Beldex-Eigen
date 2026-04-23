@@ -24,7 +24,6 @@ pub mod common;
 pub mod database;
 pub mod env;
 pub mod fs;
-pub mod kraken;
 pub mod libp2p_ext;
 pub mod beldex;
 mod beldex_ext;

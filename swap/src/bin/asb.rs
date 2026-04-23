@@ -32,7 +32,6 @@ use swap::asb::config::{
 };
 use swap::asb::{
     cancel, punish, redeem, refund, safely_abort, CoinGeckoRate, DynamicRate, EventLoop, Finality,
-    KrakenRate,
 };
 use swap::coingecko;
 use swap::common::tracing_util::Format;
@@ -43,7 +42,7 @@ use swap::network::swarm;
 use swap::protocol::alice::{run, AliceState};
 use swap::seed::Seed;
 use swap::tor::AuthenticatedClient;
-use swap::{bitcoin, kraken, beldex, tor};
+use swap::{bitcoin, beldex, tor};
 use tracing_subscriber::filter::LevelFilter;
 
 const DEFAULT_WALLET_NAME: &str = "asb-wallet";
@@ -158,10 +157,6 @@ pub async fn main() -> Result<()> {
             tracing::info!(%bitcoin_balance, "Bitcoin wallet balance");
 
             let price_rate = match config.maker.price_ticker_source {
-                PriceSource::Kraken => {
-                    let kraken_price_updates = kraken::connect(config.maker.price_ticker_ws_url.clone())?;
-                    DynamicRate::Kraken(KrakenRate::new(config.maker.ask_spread, kraken_price_updates))
-                }
                 PriceSource::Coingecko => {
                     let coingecko_price_updates = coingecko::connect(Duration::from_secs(60))?; // Poll every minute
                     DynamicRate::CoinGecko(CoinGeckoRate::new(config.maker.ask_spread, coingecko_price_updates))
