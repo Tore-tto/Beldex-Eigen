@@ -7,7 +7,7 @@ mod recovery;
 
 pub use config::PriceSource;
 pub use event_loop::{
-    CoinGeckoRate, DynamicRate, EventLoop, EventLoopHandle, FixedRate, KrakenRate, LatestRate,
+    CoinGeckoRate, DynamicRate, EventLoop, EventLoopHandle, FixedRate, LatestRate,
 };
 pub use network::behaviour::{Behaviour, OutEvent};
 pub use network::rendezvous::RendezvousNode;

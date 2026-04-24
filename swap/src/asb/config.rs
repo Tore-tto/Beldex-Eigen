@@ -212,7 +212,6 @@ pub struct TorConf {
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PriceSource {
-    Kraken,
     Coingecko,
 }
 
