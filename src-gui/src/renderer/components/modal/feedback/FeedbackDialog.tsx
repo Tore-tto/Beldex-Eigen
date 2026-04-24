@@ -18,7 +18,7 @@ import { useActiveSwapInfo, useAppSelector } from "store/hooks";
 import { parseDateString } from "utils/parseUtils";
 import { submitFeedbackViaHttp } from "../../../api";
 import LoadingButton from "../../other/LoadingButton";
-import { PiconeroAmount } from "../../other/Units";
+import { BeldexUnitsAmount } from "../../other/Units";
 
 async function submitFeedback(body: string, swapId: string | number) {
   let attachedBody = "";
@@ -70,7 +70,7 @@ function SwapSelectDropDown({
         <MenuItem value={swap.swap_id} key={swap.swap_id}>
           Swap {swap.swap_id.substring(0, 5)}... from{" "}
           {new Date(parseDateString(swap.start_date)).toDateString()} (
-          <PiconeroAmount amount={swap.bdx_amount} />)
+          <BeldexUnitsAmount amount={swap.bdx_amount} />)
         </MenuItem>
       ))}
     </Select>

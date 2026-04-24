@@ -9,6 +9,13 @@ import UnfinishedSwapsBadge from "./UnfinishedSwapsCountBadge";
 export default function NavigationHeader() {
   return (
     <Box>
+      <Box p={2} display="flex" justifyContent="center">
+        <img
+          src="/assets/logo_horizontal.png"
+          alt="Beldex Logo"
+          style={{ width: "100%", maxWidth: "180px", height: "auto" }}
+        />
+      </Box>
       <List>
         <RouteListItemIconButton name="Swap" route="/swap">
           <SwapHorizOutlinedIcon />

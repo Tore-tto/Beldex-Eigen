@@ -11,7 +11,7 @@ import KeyboardArrowDownIcon from "@material-ui/icons/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@material-ui/icons/KeyboardArrowUp";
 import { GetSwapInfoResponse } from "models/tauriModel";
 import { useState } from "react";
-import { PiconeroAmount, SatsAmount } from "../../../other/Units";
+import { BeldexUnitsAmount, SatsAmount } from "../../../other/Units";
 import HistoryRowActions from "./HistoryRowActions";
 import HistoryRowExpanded from "./HistoryRowExpanded";
 
@@ -36,7 +36,7 @@ function AmountTransfer({
     <Box className={classes.amountTransferContainer}>
       <SatsAmount amount={btcAmount} />
       <ArrowForwardIcon />
-      <PiconeroAmount amount={bdxAmount} />
+      <BeldexUnitsAmount amount={bdxAmount} />
     </Box>
   );
 }

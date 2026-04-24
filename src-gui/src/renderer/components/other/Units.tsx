@@ -65,7 +65,7 @@ export function BeldexAmount({ amount }: { amount: Amount }) {
 }
 
 export function BeldexBitcoinExchangeRate(
-  state: { rate: Amount } | { satsAmount: number; piconeroAmount: number },
+  state: { rate: Amount } | { satsAmount: number; piconerosAmount: number },
 ) {
   if ("rate" in state) {
     return (
@@ -74,7 +74,7 @@ export function BeldexBitcoinExchangeRate(
   }
 
   const rate =
-    satsToBtc(state.satsAmount) / piconerosToBeldex(state.piconeroAmount);
+    satsToBtc(state.satsAmount) / piconerosToBeldex(state.piconerosAmount);
 
   return <AmountWithUnit amount={rate} unit="BTC/BDX" fixedPrecision={8} />;
 }
@@ -90,8 +90,10 @@ export function SatsAmount({ amount }: { amount: Amount }) {
   return <BitcoinAmount amount={btcAmount} />;
 }
 
-export function PiconeroAmount({ amount }: { amount: Amount }) {
+export function BeldexUnitsAmount({ amount }: { amount: Amount }) {
   return (
-    <BeldexAmount amount={amount == null ? null : piconerosToBeldex(amount)} />
+    <BeldexAmount
+      amount={amount == null ? null : piconerosToBeldex(amount)}
+    />
   );
 }

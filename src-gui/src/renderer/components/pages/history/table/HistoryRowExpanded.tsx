@@ -14,7 +14,7 @@ import CopyableMonospaceTextBox from "renderer/components/other/CopyableMonospac
 import MonospaceTextBox from "renderer/components/other/MonospaceTextBox";
 import {
     BeldexBitcoinExchangeRate,
-    PiconeroAmount,
+    BeldexUnitsAmount,
     SatsAmount,
 } from "renderer/components/other/Units";
 import { isTestnet } from "store/config";
@@ -61,7 +61,7 @@ export default function HistoryRowExpanded({
             <TableRow>
               <TableCell>Beldex Amount</TableCell>
               <TableCell>
-                <PiconeroAmount amount={swap.bdx_amount} />
+                <BeldexUnitsAmount amount={swap.bdx_amount} />
               </TableCell>
             </TableRow>
             <TableRow>
@@ -75,7 +75,7 @@ export default function HistoryRowExpanded({
               <TableCell>
                 <BeldexBitcoinExchangeRate
                   satsAmount={swap.btc_amount}
-                  piconeroAmount={swap.bdx_amount}
+                  piconerosAmount={swap.bdx_amount}
                 />
               </TableCell>
             </TableRow>

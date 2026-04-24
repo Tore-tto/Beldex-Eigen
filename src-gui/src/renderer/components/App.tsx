@@ -23,9 +23,11 @@ const theme = createTheme({
   palette: {
     type: "dark",
     primary: {
-      main: "#f4511e",
+      main: "#00DB09", // Beldex Green
     },
-    secondary: indigo,
+    secondary: {
+      main: "#2979FB", // Beldex Blue
+    },
   },
   typography: {
     overline: {

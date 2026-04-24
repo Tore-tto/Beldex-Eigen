@@ -11,7 +11,7 @@ async fn fund_transfer_and_check_tx_key() {
         .with_env_filter("warn,test=debug,beldex_harness=debug,beldex_rpc=debug")
         .set_default();
 
-    let fund_alice: u64 = 1_000_000_000_000;
+    let fund_alice: u64 = 1_000_000_000;
     let fund_bob = 0;
     let send_to_bob = 5_000_000_000;
 

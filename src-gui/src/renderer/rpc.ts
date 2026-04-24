@@ -28,6 +28,7 @@ import {
 import { swapTauriEventReceived } from "store/features/swapSlice";
 import { store } from "./store/storeRenderer";
 import { Provider } from "models/apiModel";
+import { btcToSats } from "utils/conversionUtils";
 import { providerToConcatenatedMultiAddr } from "utils/multiAddrUtils";
 import { BeldexRecoveryResponse } from "models/rpcModel";
 
@@ -106,7 +107,7 @@ export async function buyBeldex(
     seller: providerToConcatenatedMultiAddr(seller),
     bitcoin_change_address,
     beldex_receive_address,
-    amount: amount ?? undefined,
+    amount: amount != null ? btcToSats(amount) : undefined,
   });
 }
 

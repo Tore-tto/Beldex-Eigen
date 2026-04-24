@@ -3,7 +3,7 @@ import BeldexIcon from "../../icons/BeldexIcon";
 import DepositAddressInfoBox from "../../modal/swap/DepositAddressInfoBox";
 
 const BDX_DONATE_ADDRESS =
-  "87jS4C7ngk9EHdqFFuxGFgg8AyH63dRUoULshWDybFJaP75UA89qsutG5B1L1QTc4w228nsqsv8EjhL7bz8fB3611Mh98mg";
+  "bxcg8cczftvBbTiXmEWCBLLfFqcyxcEm8556XfGnxthPhta9rthJUKYDzedx4ZjtPviMHqZ9UxedeSc3B6ThE57f1BnTSQV3c";
 
 export default function DonateInfoBox() {
   return (
