@@ -1,5 +1,4 @@
-use anyhow::{Context, Result};
-use url::Url;
+use anyhow::Result;
 use swap::coingecko;
 use std::time::Duration;
 
