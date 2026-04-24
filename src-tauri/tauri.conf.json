@@ -7,11 +7,11 @@
     "frontendDist": "../src-gui/dist",
     "beforeDevCommand": {
       "cwd": "../src-gui",
-      "script": "yarn run dev"
+      "script": "yarn dev"
     },
     "beforeBuildCommand": {
       "cwd": "../src-gui",
-      "script": "yarn run build"
+      "script": "yarn build"
     }
   },
   "app": {
