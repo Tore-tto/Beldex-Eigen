@@ -6,8 +6,8 @@ export default function BeldexIcon(props: any) {
       src="/assets/bdx_icon.png"
       alt="Beldex Icon"
       style={{
-        width: "1.1em",
-        height: "1.1em",
+        width: "38px",
+        height: "38px",
         verticalAlign: "middle",
         ...props.style,
       }}

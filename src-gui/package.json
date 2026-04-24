@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "check-bindings": "typeshare --lang=typescript --output-file __temp_bindings.ts ../swap/src && dprint fmt __temp_bindings.ts && diff -wbB __temp_bindings.ts ./src/models/tauriModel.ts && rm __temp_bindings.ts",
-    "gen-bindings": "typeshare --lang=typescript --output-file ./src/models/tauriModel.ts ../swap/src && dprint fmt ./src/models/tauriModel.ts",
+    "check-bindings": "typeshare --lang=typescript --output-file __temp_bindings.ts ../swap/src && diff -wbB __temp_bindings.ts ./src/models/tauriModel.ts && rm __temp_bindings.ts",
+    "gen-bindings": "typeshare --lang=typescript --output-file ./src/models/tauriModel.ts ../swap/src",
     "dev": "vite",
     "prebuild": "yarn run gen-bindings",
-    "build": "vite build --mode dev",
+    "build": "vite build",
     "preview": "vite preview",
     "tauri": "tauri"
   },
