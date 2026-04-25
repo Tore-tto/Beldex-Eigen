@@ -19,8 +19,7 @@ A cross-platform graphical user interface for performing **Beldex (BDX) to Bitco
 Before you begin, ensure you have the following installed:
 
 - **Rust**: [Install Rust](https://rustup.rs/) (latest stable version).
-- **Node.js & Yarn**: [Install Node.js](https://nodejs.org/) (v18+) and [Yarn](https://yarnpkg.com/).
-- **Docker**: Required for running the Beldex node and for portable builds.
+- **Node.js & Yarn**: [Install Node.js](https://nodejs.org/) (v20+) and [Yarn](https://yarnpkg.com/).
 - **System Dependencies** (Linux only):
   ```bash
   sudo apt install -y libwebkit2gtk-4.0-dev build-essential curl wget libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
@@ -32,8 +31,8 @@ Before you begin, ensure you have the following installed:
 
 1.  **Clone the Repository**:
     ```bash
-    git clone <repository-url>
-    cd <repository-folder>
+    git clone https://github.com/Tore-tto/Beldex-Eigen.git
+    cd Beldex-Eigen
     ```
 
 2.  **Install Frontend Dependencies**:
@@ -59,19 +58,6 @@ To build the application for your current operating system:
 cargo tauri build
 ```
 The binaries will be located in `src-tauri/target/release/bundle/`.
-
-### **Portable Linux Build (Recommended for Distribution)**
-To ensure your Linux binary works on older systems (resolving "GLIBC version not found" errors), use the provided Docker build environment:
-
-1.  **Build the Docker Image**:
-    ```bash
-    docker build -t beldex-gui-builder -f Dockerfile.gui .
-    ```
-2.  **Run the Build**:
-    ```bash
-    docker run --rm -v $(pwd):/app beldex-gui-builder cargo tauri build
-    ```
-3.  The compatible **AppImage** will be generated in `target/release/bundle/appimage/`.
 
 ---
 
