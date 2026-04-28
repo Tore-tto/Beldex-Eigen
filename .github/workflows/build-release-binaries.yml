@@ -57,7 +57,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout tagged commit
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.release.target_commitish }}
           token: ${{ secrets.BOTTY_GITHUB_TOKEN }}
@@ -135,7 +135,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.release.target_commitish }}
 
