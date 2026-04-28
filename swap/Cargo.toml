@@ -13,7 +13,7 @@ tauri = [ "dep:tauri" ]
 
 [dependencies]
 anyhow = "1"
-async-compression = { version = "0.3", features = [ "bzip2", "tokio", "xz" ] }
+async-compression = { version = "0.4", features = [ "bzip2", "tokio", "xz" ] }
 async-trait = "0.1"
 atty = "0.2"
 backoff = { version = "0.4", features = [ "tokio" ] }
