@@ -103,7 +103,7 @@ torut = { version = "0.2", default-features = false, features = [
     "v3",
     "control",
 ] }
-tower = { version = "0.4.13", features = [ "full" ] }
+tower = { version = "0.5.3", features = [ "full" ] }
 tower-http = { version = "0.3.4", features = [ "full" ] }
 tracing = { version = "0.1", features = [ "attributes" ] }
 tracing-appender = "0.2"
